@@ -1,0 +1,6 @@
+{
+  "name": "PRYORA",
+  "description": "Personal Finance OS for tracking income, expenses, accounts, budgets, cash flow, net worth, and long-term financial clarity.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,175 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and financial workspace preferences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "currency": { "type": "string", "maxLength": 8 },
+        "locale": { "type": "string", "maxLength": 16 },
+        "dateFormat": { "type": "string", "maxLength": 16 },
+        "onboardingCompleted": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "email", "currency", "createdAt"]
+    },
+    "Account": {
+      "title": "Account",
+      "description": "Financial asset or liability account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128, "minLength": 1 },
+        "type": { "type": "string", "enum": ["checking", "savings", "cash", "credit_card", "wallet", "investment", "loan", "other"] },
+        "currency": { "type": "string", "maxLength": 8 },
+        "initialBalanceMinor": { "type": "integer" },
+        "currentBalanceMinor": { "type": "integer" },
+        "institution": { "type": "string", "maxLength": 128 },
+        "color": { "type": "string", "maxLength": 32 },
+        "icon": { "type": "string", "maxLength": 64 },
+        "creditLimitMinor": { "type": "integer" },
+        "statementDay": { "type": "integer" },
+        "dueDay": { "type": "integer" },
+        "minimumPaymentMinor": { "type": "integer" },
+        "isArchived": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "name", "type", "currency", "initialBalanceMinor", "currentBalanceMinor", "createdAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Double-entry financial ledger transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "accountId": { "type": "string", "maxLength": 128 },
+        "toAccountId": { "type": "string", "maxLength": 128 },
+        "categoryId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["expense", "income", "transfer", "refund", "reimbursement"] },
+        "amountMinor": { "type": "integer" },
+        "currency": { "type": "string", "maxLength": 8 },
+        "merchant": { "type": "string", "maxLength": 256 },
+        "date": { "type": "string", "maxLength": 32 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "receiptUrl": { "type": "string", "maxLength": 2048 },
+        "clearedStatus": { "type": "string", "enum": ["cleared", "pending", "reconciled"] },
+        "isExcludedFromBudget": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "accountId", "type", "amountMinor", "currency", "date", "createdAt"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Classification for income and expense transactions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128, "minLength": 1 },
+        "type": { "type": "string", "enum": ["expense", "income"] },
+        "icon": { "type": "string", "maxLength": 64 },
+        "color": { "type": "string", "maxLength": 32 },
+        "isSystem": { "type": "boolean" },
+        "budgetMinor": { "type": "integer" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "name", "type", "createdAt"]
+    },
+    "Budget": {
+      "title": "Budget",
+      "description": "Monthly spending budget limit by category",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "categoryId": { "type": "string", "maxLength": 128 },
+        "month": { "type": "string", "maxLength": 16 },
+        "amountMinor": { "type": "integer" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "categoryId", "amountMinor", "createdAt"]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "Savings milestone or reserve fund goal",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128, "minLength": 1 },
+        "targetAmountMinor": { "type": "integer" },
+        "currentAmountMinor": { "type": "integer" },
+        "targetDate": { "type": "string", "maxLength": 32 },
+        "category": { "type": "string", "maxLength": 64 },
+        "color": { "type": "string", "maxLength": 32 },
+        "icon": { "type": "string", "maxLength": 64 },
+        "isCompleted": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "name", "targetAmountMinor", "currentAmountMinor", "createdAt"]
+    },
+    "RecurringRule": {
+      "title": "RecurringRule",
+      "description": "Scheduled bill or subscription cadence",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "accountId": { "type": "string", "maxLength": 128 },
+        "categoryId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["expense", "income"] },
+        "merchant": { "type": "string", "maxLength": 256 },
+        "amountMinor": { "type": "integer" },
+        "frequency": { "type": "string", "enum": ["weekly", "monthly", "yearly"] },
+        "nextExpectedDate": { "type": "string", "maxLength": 32 },
+        "isActive": { "type": "boolean" },
+        "isSubscription": { "type": "boolean" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "accountId", "type", "merchant", "amountMinor", "frequency", "nextExpectedDate", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "User profile document containing preferences and onboarding state"
+    },
+    "/users/{userId}/accounts/{accountId}": {
+      "schema": { "$ref": "Account" },
+      "description": "User financial asset and liability accounts"
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "Transaction" },
+      "description": "Ledger transactions (expenses, income, transfers, refunds)"
+    },
+    "/users/{userId}/categories/{categoryId}": {
+      "schema": { "$ref": "Category" },
+      "description": "User income and spending categories"
+    },
+    "/users/{userId}/budgets/{budgetId}": {
+      "schema": { "$ref": "Budget" },
+      "description": "Monthly category spending limits"
+    },
+    "/users/{userId}/goals/{goalId}": {
+      "schema": { "$ref": "Goal" },
+      "description": "User financial milestone goals and progress"
+    },
+    "/users/{userId}/recurringRules/{ruleId}": {
+      "schema": { "$ref": "RecurringRule" },
+      "description": "Recurring obligations and active subscriptions"
+    }
+  }
+}

@@ -1,0 +1,181 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Entity validation helpers
+    function isValidUser(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.email is string && data.email.size() <= 256 &&
+             (!('currency' in data) || (data.currency is string && data.currency.size() <= 8)) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+             (!('display_name' in data) || (data.display_name is string && data.display_name.size() <= 128)) &&
+             (!('locale' in data) || (data.locale is string && data.locale.size() <= 16)) &&
+             (!('dateFormat' in data) || (data.dateFormat is string && data.dateFormat.size() <= 16)) &&
+             (!('date_format' in data) || (data.date_format is string && data.date_format.size() <= 16)) &&
+             (!('onboardingCompleted' in data) || data.onboardingCompleted is bool) &&
+             (!('onboarding_completed' in data) || data.onboarding_completed is bool || data.onboarding_completed is int) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+             (!('created_at' in data) || (data.created_at is string && data.created_at.size() <= 64)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64)) &&
+             (!('updated_at' in data) || (data.updated_at is string && data.updated_at.size() <= 64));
+    }
+
+    function isValidAccount(data) {
+      let uid = ('userId' in data) ? data.userId : (('user_id' in data) ? data.user_id : '');
+      return data.id is string && data.id.size() <= 128 &&
+             uid == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 128 &&
+             data.type in ['checking', 'savings', 'cash', 'credit_card', 'wallet', 'investment', 'loan', 'other'] &&
+             data.currency is string && data.currency.size() <= 8 &&
+             (('initialBalanceMinor' in data && data.initialBalanceMinor is int) || ('initial_balance_minor' in data && data.initial_balance_minor is int)) &&
+             (('currentBalanceMinor' in data && data.currentBalanceMinor is int) || ('current_balance_minor' in data && data.current_balance_minor is int));
+    }
+
+    function isValidTransaction(data) {
+      let uid = ('userId' in data) ? data.userId : (('user_id' in data) ? data.user_id : '');
+      let accId = ('accountId' in data) ? data.accountId : (('account_id' in data) ? data.account_id : '');
+      let amt = ('amountMinor' in data) ? data.amountMinor : (('amount_minor' in data) ? data.amount_minor : -1);
+      return data.id is string && data.id.size() <= 128 &&
+             uid == request.auth.uid &&
+             accId is string && accId.size() <= 128 &&
+             data.type in ['expense', 'income', 'transfer', 'refund', 'reimbursement'] &&
+             amt is int && amt >= 0 &&
+             data.currency is string && data.currency.size() <= 8 &&
+             data.date is string && data.date.size() <= 32;
+    }
+
+    function isValidCategory(data) {
+      let uid = ('userId' in data) ? data.userId : (('user_id' in data) ? data.user_id : '');
+      return data.id is string && data.id.size() <= 128 &&
+             uid == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 128 &&
+             data.type in ['expense', 'income'];
+    }
+
+    function isValidBudget(data) {
+      let uid = ('userId' in data) ? data.userId : (('user_id' in data) ? data.user_id : '');
+      let catId = ('categoryId' in data) ? data.categoryId : (('category_id' in data) ? data.category_id : '');
+      let amt = ('amountMinor' in data) ? data.amountMinor : (('amount_minor' in data) ? data.amount_minor : -1);
+      return data.id is string && data.id.size() <= 128 &&
+             uid == request.auth.uid &&
+             catId is string && catId.size() <= 128 &&
+             amt is int && amt >= 0;
+    }
+
+    function isValidGoal(data) {
+      let uid = ('userId' in data) ? data.userId : (('user_id' in data) ? data.user_id : '');
+      let targetAmt = ('targetAmountMinor' in data) ? data.targetAmountMinor : (('target_amount_minor' in data) ? data.target_amount_minor : -1);
+      let currentAmt = ('currentAmountMinor' in data) ? data.currentAmountMinor : (('current_amount_minor' in data) ? data.current_amount_minor : 0);
+      return data.id is string && data.id.size() <= 128 &&
+             uid == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 128 &&
+             targetAmt is int && targetAmt >= 0 &&
+             currentAmt is int && currentAmt >= 0;
+    }
+
+    function isValidRecurringRule(data) {
+      let uid = ('userId' in data) ? data.userId : (('user_id' in data) ? data.user_id : '');
+      let accId = ('accountId' in data) ? data.accountId : (('account_id' in data) ? data.account_id : '');
+      let amt = ('amountMinor' in data) ? data.amountMinor : (('amount_minor' in data) ? data.amount_minor : -1);
+      let nextDate = ('nextExpectedDate' in data) ? data.nextExpectedDate : (('next_expected_date' in data) ? data.next_expected_date : '');
+      return data.id is string && data.id.size() <= 128 &&
+             uid == request.auth.uid &&
+             accId is string && accId.size() <= 128 &&
+             data.type in ['expense', 'income'] &&
+             data.merchant is string && data.merchant.size() <= 256 &&
+             amt is int && amt >= 0 &&
+             data.frequency in ['weekly', 'monthly', 'quarterly', 'yearly'] &&
+             nextDate is string && nextDate.size() <= 32;
+    }
+
+    // Match root user document
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Users cannot enumerate all users
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().id == userId;
+      allow update: if isOwner(userId) && isValidUser(incoming()) && incoming().id == existing().id;
+      allow delete: if isOwner(userId);
+
+      // Subcollection: Accounts
+      match /accounts/{accountId} {
+        allow get: if isOwner(userId) && isValidId(accountId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(accountId) && isValidAccount(incoming()) && incoming().id == accountId;
+        allow update: if isOwner(userId) && isValidId(accountId) && isValidAccount(incoming()) && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(accountId);
+      }
+
+      // Subcollection: Transactions
+      match /transactions/{transactionId} {
+        allow get: if isOwner(userId) && isValidId(transactionId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(transactionId) && isValidTransaction(incoming()) && incoming().id == transactionId;
+        allow update: if isOwner(userId) && isValidId(transactionId) && isValidTransaction(incoming()) && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(transactionId);
+      }
+
+      // Subcollection: Categories
+      match /categories/{categoryId} {
+        allow get: if isOwner(userId) && isValidId(categoryId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(categoryId) && isValidCategory(incoming()) && incoming().id == categoryId;
+        allow update: if isOwner(userId) && isValidId(categoryId) && isValidCategory(incoming()) && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(categoryId);
+      }
+
+      // Subcollection: Budgets
+      match /budgets/{budgetId} {
+        allow get: if isOwner(userId) && isValidId(budgetId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(budgetId) && isValidBudget(incoming()) && incoming().id == budgetId;
+        allow update: if isOwner(userId) && isValidId(budgetId) && isValidBudget(incoming()) && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(budgetId);
+      }
+
+      // Subcollection: Goals
+      match /goals/{goalId} {
+        allow get: if isOwner(userId) && isValidId(goalId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(goalId) && isValidGoal(incoming()) && incoming().id == goalId;
+        allow update: if isOwner(userId) && isValidId(goalId) && isValidGoal(incoming()) && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(goalId);
+      }
+
+      // Subcollection: Recurring Rules
+      match /recurringRules/{ruleId} {
+        allow get: if isOwner(userId) && isValidId(ruleId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(ruleId) && isValidRecurringRule(incoming()) && incoming().id == ruleId;
+        allow update: if isOwner(userId) && isValidId(ruleId) && isValidRecurringRule(incoming()) && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(ruleId);
+      }
+    }
+  }
+}
