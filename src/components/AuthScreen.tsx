@@ -117,7 +117,8 @@ export const AuthScreen: React.FC = () => {
       </div>
 
       <div className="mt-7 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0 relative z-10">
-        <div className="bg-slate-900 border border-slate-800 py-7 px-6 sm:px-8 shadow-2xl rounded-3xl">
+        <div className="bg-slate-900/90 backdrop-blur-2xl border border-slate-800/80 py-7 px-6 sm:px-8 shadow-2xl rounded-3xl relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent pointer-events-none" />
           
           {/* Error Banner */}
           {error && (

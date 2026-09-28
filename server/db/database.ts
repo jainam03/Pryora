@@ -17,14 +17,29 @@ import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 
 let dbInstance: SqlJsDatabase | null = null;
 let inTransaction = false;
-const DATA_DIR = path.join(process.cwd(), 'data');
+const isVercel = Boolean(process.env.VERCEL);
+const SOURCE_DB_FILE = path.join(process.cwd(), 'data', 'pryora.db');
+const DATA_DIR = isVercel ? path.join('/tmp', 'pryora-data') : path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'pryora.db');
 
 export async function initDatabase(): Promise<SqlJsDatabase> {
   if (dbInstance) return dbInstance;
 
   if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+    try {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    } catch (e) {
+      console.warn('Could not create data directory, falling back to memory/tmp:', e);
+    }
+  }
+
+  // If in Vercel environment and seed DB exists, copy into /tmp
+  if (isVercel && fs.existsSync(SOURCE_DB_FILE) && !fs.existsSync(DB_FILE)) {
+    try {
+      fs.copyFileSync(SOURCE_DB_FILE, DB_FILE);
+    } catch (e) {
+      console.warn('Could not copy seed database to /tmp:', e);
+    }
   }
 
   const SQL = await initSqlJs();
@@ -35,6 +50,13 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
       dbInstance = new SQL.Database(fileBuffer);
     } catch (err) {
       console.error('Failed to load existing database file, creating fresh:', err);
+      dbInstance = new SQL.Database();
+    }
+  } else if (fs.existsSync(SOURCE_DB_FILE)) {
+    try {
+      const fileBuffer = fs.readFileSync(SOURCE_DB_FILE);
+      dbInstance = new SQL.Database(fileBuffer);
+    } catch (err) {
       dbInstance = new SQL.Database();
     }
   } else {

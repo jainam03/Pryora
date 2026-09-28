@@ -355,25 +355,25 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   };
 
   return (
-    <div id="transaction_modal" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div id="transaction_modal" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-3.5 sm:p-4 overflow-y-auto">
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200/80 dark:border-white/10 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
-          <h2 className="text-base font-bold text-slate-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">
             {initialTransaction ? 'Edit Transaction' : 'Record Transaction'}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-colors"
+            className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2">
+          <div className="mx-6 mt-4 p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/40 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
@@ -381,14 +381,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Type Selector Tabs */}
-          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl">
+          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200/60 dark:border-white/5">
             <button
               type="button"
               onClick={() => setType('expense')}
-              className={`py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
                 type === 'expense'
-                  ? 'bg-white text-rose-700 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <TrendingDown className="w-3.5 h-3.5" /> Expense
@@ -396,10 +396,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <button
               type="button"
               onClick={() => setType('income')}
-              className={`py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
                 type === 'income'
-                  ? 'bg-white text-emerald-700 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <TrendingUp className="w-3.5 h-3.5" /> Income
@@ -407,10 +407,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <button
               type="button"
               onClick={() => setType('transfer')}
-              className={`py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
                 type === 'transfer'
-                  ? 'bg-white text-blue-700 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <ArrowRightLeft className="w-3.5 h-3.5" /> Transfer
@@ -420,11 +420,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           {/* Amount and Date */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                 Amount ({currencySymbol})
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-base">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 font-extrabold text-base">
                   {currencySymbol}
                 </span>
                 <input
@@ -435,19 +435,19 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   placeholder="0.00"
                   value={amount}
                   onChange={e => setAmount(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-lg font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-lg font-black text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Date</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Date</label>
               <input
                 type="date"
                 required
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-sm text-slate-900 dark:text-white font-medium focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
             </div>
           </div>
@@ -455,7 +455,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           {/* Merchant / Description */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-slate-700">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 {type === 'transfer' ? 'Transfer Note / Reference' : 'Merchant / Payee / Source'}
               </label>
               {type === 'expense' && merchant.trim().length >= 2 && (
@@ -464,17 +464,17 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   type="button"
                   onClick={() => triggerAiCategorization(merchant.trim())}
                   disabled={isAiSuggesting}
-                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 inline-flex items-center gap-1 transition-colors disabled:opacity-50"
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 inline-flex items-center gap-1 transition-colors disabled:opacity-50"
                   title="Ask AI to categorize this merchant"
                 >
                   {isAiSuggesting ? (
                     <>
-                      <Loader2 className="w-3 h-3 animate-spin text-indigo-600" />
+                      <Loader2 className="w-3 h-3 animate-spin text-indigo-600 dark:text-indigo-400" />
                       <span>AI Categorizing...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-3 h-3 text-indigo-500 fill-indigo-100" />
+                      <Sparkles className="w-3 h-3 text-indigo-500 fill-indigo-100 dark:fill-indigo-950" />
                       <span>AI Auto-Categorize</span>
                     </>
                   )}
@@ -495,10 +495,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 }
                 value={merchant}
                 onChange={e => setMerchant(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
               {isAiSuggesting && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] text-indigo-600 font-semibold bg-white/90 px-1.5 py-0.5 rounded-md">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold bg-white/90 dark:bg-slate-800/90 px-2 py-0.5 rounded-lg border border-indigo-200 dark:border-indigo-800">
                   <Sparkles className="w-3 h-3 animate-spin text-indigo-500" />
                   <span>Analyzing...</span>
                 </div>
@@ -509,13 +509,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           {/* Account Selection */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                 {type === 'transfer' ? 'From Account' : 'Account'}
               </label>
               <select
                 value={accountId}
                 onChange={e => setAccountId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               >
                 {accounts.map(acc => (
                   <option key={acc.id} value={acc.id}>
@@ -527,11 +527,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
             {type === 'transfer' ? (
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">To Account</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">To Account</label>
                 <select
                   value={toAccountId}
                   onChange={e => setToAccountId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 >
                   <option value="">Select Destination Account</option>
                   {accounts
@@ -547,9 +547,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Category</label>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Category</label>
                     {isAiSuggesting && (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 font-semibold animate-pulse">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold animate-pulse">
                         <Sparkles className="w-2.5 h-2.5" /> AI analyzing...
                       </span>
                     )}
@@ -558,7 +558,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     <button
                       type="button"
                       onClick={handleToggleSplit}
-                      className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+                      className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
                     >
                       + Split Categories
                     </button>
@@ -571,10 +571,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     setCategoryId(e.target.value);
                     setHasUserManuallyChangedCategory(true);
                   }}
-                  className={`w-full px-3 py-2 rounded-xl border text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-colors ${
+                  className={`w-full px-3.5 py-2.5 rounded-2xl border text-sm font-medium text-slate-900 dark:text-white bg-slate-50/70 dark:bg-slate-800/80 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors ${
                     aiSuggestion && categoryId === aiSuggestion.categoryId
-                      ? 'border-indigo-300 bg-indigo-50/20'
-                      : 'border-slate-200'
+                      ? 'border-indigo-300 dark:border-indigo-600 bg-indigo-50/30 dark:bg-indigo-950/40'
+                      : 'border-slate-200 dark:border-slate-700'
                   }`}
                 >
                   <option value="">Uncategorized</option>
@@ -589,7 +589,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 {aiSuggestion && type === 'expense' && (
                   <div
                     id="ai_category_suggestion_banner"
-                    className="mt-1.5 p-2.5 rounded-xl bg-indigo-50/90 border border-indigo-200/90 flex items-start justify-between gap-2 text-xs animate-in fade-in slide-in-from-top-1 shadow-2xs"
+                    className="mt-1.5 p-2.5 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/70 border border-indigo-200/90 dark:border-indigo-800/80 flex items-start justify-between gap-2 text-xs animate-in fade-in slide-in-from-top-1 shadow-2xs"
                   >
                     <div className="flex items-start gap-2 min-w-0">
                       <div className="w-5 h-5 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
@@ -597,18 +597,18 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[11px] font-bold text-indigo-900">
+                          <span className="text-[11px] font-bold text-indigo-900 dark:text-indigo-200">
                             {categoryId === aiSuggestion.categoryId ? 'AI Auto-categorized:' : 'AI Suggestion:'}
                           </span>
-                          <span className="text-[11px] font-extrabold text-indigo-700 bg-white px-2 py-0.5 rounded-md border border-indigo-200 shadow-2xs">
+                          <span className="text-[11px] font-extrabold text-indigo-700 dark:text-indigo-300 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-700 shadow-2xs">
                             {aiSuggestion.categoryName}
                           </span>
-                          <span className="text-[10px] text-indigo-600 font-bold bg-indigo-100/70 px-1.5 py-0.2 rounded">
+                          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-100/70 dark:bg-indigo-900/50 px-1.5 py-0.2 rounded">
                             {Math.round(aiSuggestion.confidence * 100)}% match
                           </span>
                         </div>
                         {aiSuggestion.reason && (
-                          <p className="text-[11px] text-indigo-800/80 mt-1 leading-snug">
+                          <p className="text-[11px] text-indigo-800/80 dark:text-indigo-300/80 mt-1 leading-snug">
                             {aiSuggestion.reason}
                           </p>
                         )}
@@ -626,7 +626,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                               setHasUserManuallyChangedCategory(false);
                             }
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-xs transition-colors flex items-center gap-1"
+                          className="px-2.5 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-xs transition-colors flex items-center gap-1"
                         >
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Apply</span>
@@ -635,7 +635,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setAiSuggestion(null)}
-                        className="text-indigo-400 hover:text-indigo-600 p-1 rounded-lg hover:bg-indigo-100/60 transition-colors"
+                        className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-200 p-1 rounded-lg hover:bg-indigo-100/60 dark:hover:bg-indigo-900/60 transition-colors"
                         title="Dismiss suggestion"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -649,13 +649,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
           {/* Split Mode Sub-Form */}
           {isSplit && type !== 'transfer' && (
-            <div className="p-3.5 bg-indigo-50/50 rounded-xl border border-indigo-100 space-y-3">
+            <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/40 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-indigo-900">Split Transaction Details</span>
+                <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200 uppercase tracking-wider">Split Transaction Details</span>
                 <button
                   type="button"
                   onClick={handleToggleSplit}
-                  className="text-xs text-slate-500 hover:text-slate-800"
+                  className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 font-medium"
                 >
                   Cancel Split
                 </button>
@@ -671,7 +671,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         next[idx].categoryId = e.target.value;
                         setSplits(next);
                       }}
-                      className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-medium"
+                      className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-2.5 py-1.5 text-xs font-medium"
                     >
                       {availableCategories.map(cat => (
                         <option key={cat.id} value={cat.id}>
@@ -694,7 +694,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                           next[idx].amount = e.target.value;
                           setSplits(next);
                         }}
-                        className="w-full pl-6 pr-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                        className="w-full pl-6 pr-2 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl text-xs font-semibold"
                       />
                     </div>
 
@@ -702,7 +702,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       <button
                         type="button"
                         onClick={() => removeSplitRow(idx)}
-                        className="text-slate-400 hover:text-red-500 p-1"
+                        className="text-slate-400 hover:text-rose-500 p-1"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -711,21 +711,21 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 ))}
               </div>
 
-              <div className="flex items-center justify-between pt-1 border-t border-indigo-100 text-xs">
+              <div className="flex items-center justify-between pt-1 border-t border-indigo-100 dark:border-indigo-900/50 text-xs">
                 <button
                   type="button"
                   onClick={addSplitRow}
-                  className="text-indigo-700 font-semibold flex items-center gap-1 hover:text-indigo-900"
+                  className="text-indigo-700 dark:text-indigo-300 font-bold flex items-center gap-1 hover:text-indigo-900 dark:hover:text-white"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add split category
                 </button>
                 <div className="font-medium">
                   {isSplitValid ? (
-                    <span className="text-emerald-700 flex items-center gap-1">
-                      <Check className="w-3.5 h-3.5" /> Exact Match
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5 stroke-[2.5]" /> Exact Match
                     </span>
                   ) : (
-                    <span className="text-amber-700">
+                    <span className="text-amber-700 dark:text-amber-400 font-bold">
                       Remaining: {currencySymbol}{splitDifference.toFixed(2)}
                     </span>
                   )}
@@ -737,26 +737,26 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           {/* Notes and Tags */}
           <div className="space-y-2">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Notes (Optional)</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Notes (Optional)</label>
               <input
                 type="text"
                 placeholder="Add contextual details or receipt references"
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-xs font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Tags (Press Enter)</label>
-              <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl border border-slate-200 bg-slate-50/50">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Tags (Press Enter)</label>
+              <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
                 {tags.map(t => (
                   <span
                     key={t}
-                    className="bg-white border border-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-md flex items-center gap-1"
+                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs px-2.5 py-1 rounded-xl flex items-center gap-1 font-medium shadow-2xs"
                   >
                     #{t}
-                    <button type="button" onClick={() => removeTag(t)} className="text-slate-400 hover:text-slate-700">
+                    <button type="button" onClick={() => removeTag(t)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white ml-0.5">
                       ×
                     </button>
                   </span>
@@ -767,7 +767,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   value={tagInput}
                   onChange={e => setTagInput(e.target.value)}
                   onKeyDown={handleAddTag}
-                  className="bg-transparent text-xs text-slate-800 placeholder-slate-400 focus:outline-none min-w-[120px]"
+                  className="bg-transparent text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none min-w-[120px] px-1 py-1"
                 />
               </div>
             </div>
@@ -775,7 +775,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
           {/* Receipt Attachment */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Receipt Attachment</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Receipt Attachment</label>
             <input
               type="file"
               ref={fileInputRef}
@@ -785,9 +785,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             />
 
             {receiptDataUrl ? (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="flex items-center gap-2 text-xs font-medium text-slate-800">
-                  <Receipt className="w-4 h-4 text-emerald-600" />
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2 text-xs font-medium text-slate-800 dark:text-slate-200">
+                  <Receipt className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span className="truncate max-w-[240px]">{receiptFileName || 'receipt_attached.jpg'}</span>
                 </div>
                 <button
@@ -796,7 +796,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     setReceiptDataUrl(null);
                     setReceiptFileName(null);
                   }}
-                  className="text-xs text-red-600 hover:text-red-700 font-medium"
+                  className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 font-bold"
                 >
                   Remove
                 </button>
@@ -805,22 +805,22 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-slate-200 hover:border-slate-300 rounded-xl p-3 text-center transition-colors flex items-center justify-center gap-2 text-xs text-slate-600 hover:text-slate-900"
+                className="w-full border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-2xl p-3.5 text-center transition-colors flex items-center justify-center gap-2 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               >
-                <Upload className="w-4 h-4 text-slate-400" /> Upload receipt image (receipt proof)
+                <Upload className="w-4 h-4 text-slate-400 dark:text-slate-500" /> Upload receipt image (receipt proof)
               </button>
             )}
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             {activeTx ? (
               <button
                 id="btn_modal_delete_transaction"
                 type="button"
                 onClick={() => setIsConfirmingDelete(true)}
                 disabled={isSubmitting || isDeleting}
-                className="px-3 py-2 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                className="px-3.5 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Delete</span>
@@ -834,7 +834,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting || isDeleting}
-                className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -842,7 +842,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 id="btn_submit_transaction"
                 type="submit"
                 disabled={isSubmitting || isDeleting}
-                className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm hover:shadow disabled:opacity-50"
+                className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
               >
                 {isSubmitting ? 'Saving...' : activeTx ? 'Save Changes' : 'Record Transaction'}
               </button>

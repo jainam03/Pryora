@@ -96,11 +96,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
   const currentCurrencySymbol = currentCurrencyObj?.symbol || '₹';
 
   return (
-    <div id="onboarding_modal" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div id="onboarding_modal" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-3.5 sm:p-4 overflow-y-auto">
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800/80 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         
         {/* Header */}
-        <div className="bg-slate-900 text-white px-6 sm:px-8 py-5 flex items-center justify-between border-b border-slate-800">
+        <div className="bg-slate-900 dark:bg-slate-950 text-white px-6 sm:px-8 py-5 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 font-black text-sm flex items-center justify-center tracking-tighter shadow-sm">
               P
@@ -112,7 +112,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
                   Quick Setup
                 </span>
               </div>
-              <h2 className="text-sm font-medium text-slate-300 mt-0.5">
+              <h2 className="text-xs sm:text-sm font-medium text-slate-300 mt-0.5">
                 {step === 1 ? 'Step 1: Choose Your Currency' : 'Step 2: Your Starting Account'}
               </h2>
             </div>
@@ -132,12 +132,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
         </div>
 
         {/* Step Indicator Bar */}
-        <div className="w-full bg-slate-100 h-1 flex">
+        <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 flex">
           <div className={`h-full bg-emerald-500 transition-all duration-300 ${step === 1 ? 'w-1/2' : 'w-full'}`} />
         </div>
 
         {error && (
-          <div className="mx-6 sm:mx-8 mt-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+          <div className="mx-6 sm:mx-8 mt-4 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs">
             {error}
           </div>
         )}
@@ -146,8 +146,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
         {step === 1 && (
           <div className="p-6 sm:p-8 space-y-6">
             <div>
-              <h3 className="text-base font-bold text-slate-900">What currency do you spend in?</h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">What currency do you spend in?</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Your expenses, balances, and reports will be recorded in this currency.
               </p>
             </div>
@@ -162,34 +162,34 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
                     onClick={() => setCurrency(curr.code)}
                     className={`p-3 rounded-xl border text-left transition-all relative ${
                       isSelected
-                        ? 'border-emerald-600 bg-emerald-50/50 ring-2 ring-emerald-500/20 text-slate-900 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50/50'
+                        ? 'border-emerald-600 dark:border-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20 text-slate-900 dark:text-white shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50/60 dark:hover:bg-slate-800/40'
                     }`}
                   >
                     {isSelected && (
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600 absolute top-2.5 right-2.5" />
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 absolute top-2.5 right-2.5" />
                     )}
-                    <div className="text-xl font-black text-slate-900">{curr.symbol}</div>
+                    <div className="text-xl font-black text-slate-900 dark:text-white">{curr.symbol}</div>
                     <div className="font-bold text-xs mt-0.5">{curr.code}</div>
-                    <div className="text-[10px] text-slate-400 truncate">{curr.name}</div>
+                    <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{curr.name}</div>
                   </button>
                 );
               })}
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => handleFinish(true)}
                 disabled={isSubmitting}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-800 py-2"
+                className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 py-2"
               >
                 Use defaults & skip
               </button>
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl font-semibold text-xs transition-colors shadow-sm"
+                className="flex items-center gap-1.5 bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-semibold text-xs transition-colors shadow-sm"
               >
                 Next: Account Setup <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -201,8 +201,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
         {step === 2 && (
           <div className="p-6 sm:p-8 space-y-6">
             <div>
-              <h3 className="text-base font-bold text-slate-900">Configure your spending account</h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Configure your spending account</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Enter your initial balance if you'd like, or leave as 0.00 to start fresh.
               </p>
             </div>
@@ -210,9 +210,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
             {/* Account List */}
             <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
               {accounts.map((acc, index) => (
-                <div key={index} className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/60 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div key={index} className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-800/40 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0">
                       {acc.type === 'credit_card' ? (
                         <CreditCard className="w-4 h-4 text-rose-500" />
                       ) : acc.type === 'cash' ? (
@@ -231,7 +231,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
                         }
                         setAccounts(next);
                       }}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
                       <option value="cash">Cash</option>
                       <option value="checking">Bank / Checking</option>
@@ -250,13 +250,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
                         next[index].name = e.target.value;
                         setAccounts(next);
                       }}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                   </div>
 
                   <div className="w-full sm:w-36">
                     <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 font-bold text-xs">
                         {currentCurrencySymbol}
                       </span>
                       <input
@@ -269,7 +269,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
                           next[index].balance = e.target.value;
                           setAccounts(next);
                         }}
-                        className="w-full bg-white border border-slate-200 rounded-lg pl-7 pr-2.5 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-7 pr-2.5 py-1.5 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       />
                     </div>
                   </div>
@@ -278,7 +278,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
                     <button
                       type="button"
                       onClick={() => removeAccountRow(index)}
-                      className="text-slate-400 hover:text-rose-500 p-1.5 transition-colors self-end sm:self-center"
+                      className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-1.5 transition-colors self-end sm:self-center"
                       title="Remove"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -290,30 +290,30 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
 
             {/* Quick Add Presets */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-[11px] text-slate-400 font-medium">Add another:</span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">Add another:</span>
               <button
                 type="button"
                 onClick={() => addAccountRow('checking', 'Bank Account')}
-                className="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg font-medium transition-colors flex items-center gap-1"
+                className="text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg font-medium transition-colors flex items-center gap-1"
               >
                 <Plus className="w-3 h-3" /> Bank
               </button>
               <button
                 type="button"
                 onClick={() => addAccountRow('credit_card', 'Credit Card')}
-                className="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg font-medium transition-colors flex items-center gap-1"
+                className="text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg font-medium transition-colors flex items-center gap-1"
               >
                 <Plus className="w-3 h-3" /> Credit Card
               </button>
             </div>
 
             {/* Action Bar */}
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setStep(1)}
                 disabled={isSubmitting}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-800"
+                className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               >
                 Back
               </button>
@@ -323,7 +323,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleFinish(true)}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-3 py-2"
+                  className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 px-3 py-2"
                 >
                   Skip & Use Defaults
                 </button>

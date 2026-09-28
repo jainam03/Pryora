@@ -154,35 +154,35 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
     <div className="space-y-6 pb-12">
       {/* Top Bar */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Data Hub & Sovereign Ownership</h2>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Data Hub & Sovereign Ownership</h2>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
           Zero vendor lock-in. Import bank statements, export spreadsheets, and generate complete unencrypted ledger backups.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Module 1: CSV Statement Import */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+        {/* Module 1: CSV Statement Import (Liquid Glass) */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xs dark:shadow-slate-950/40 space-y-5">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-900/40 shadow-2xs">
               <Upload className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Import Bank / Card CSV</h3>
-              <p className="text-xs text-slate-500">Supports standard HDFC, Chase, Amex, ICICI & CSV exports</p>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Import Bank / Card CSV</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Supports standard HDFC, Chase, Amex, ICICI & CSV exports</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                 Destination Account
               </label>
               <select
                 value={targetAccountId}
                 onChange={e => setTargetAccountId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"
               >
                 {accounts.map(a => (
                   <option key={a.id} value={a.id}>
@@ -194,40 +194,40 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
 
             {/* Drag & Drop File Input */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                 Select CSV File
               </label>
-              <div className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-6 text-center cursor-pointer transition-colors relative bg-slate-50/50">
+              <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-2xl p-6 text-center cursor-pointer transition-colors relative bg-slate-50/50 dark:bg-slate-800/40">
                 <input
                   type="file"
                   accept=".csv,text/csv"
                   onChange={handleFileUpload}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                 />
-                <FileSpreadsheet className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                <span className="text-xs font-semibold text-slate-700 block">
+                <FileSpreadsheet className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto mb-2" />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                   {fileName ? fileName : 'Click or drop your .csv statement here'}
                 </span>
-                <span className="text-[10px] text-slate-400 mt-1 block">
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 block">
                   Columns: Date, Payee/Description, Amount, Category (optional)
                 </span>
               </div>
             </div>
 
             {importError && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2">
+              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/40 text-rose-700 dark:text-rose-300 text-xs rounded-2xl flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{importError}</span>
               </div>
             )}
 
             {importResult && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs rounded-xl flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-300 text-xs rounded-2xl flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <div>
                   <strong className="font-bold">{importResult.imported_count} transaction(s) imported successfully!</strong>
                   {importResult.skipped_count > 0 && (
-                    <p className="text-[11px] text-emerald-700 mt-0.5">
+                    <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
                       ({importResult.skipped_count} row(s) skipped due to missing dates or zero values)
                     </p>
                   )}
@@ -239,7 +239,7 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
               type="button"
               disabled={!csvContent || importing}
               onClick={handleExecuteImport}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 text-xs font-bold py-3 rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {importing ? (
                 <>
@@ -248,7 +248,7 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
                 </>
               ) : (
                 <>
-                  <Upload className="w-4 h-4" />
+                  <Upload className="w-4 h-4 stroke-[2.5]" />
                   <span>Execute Statement Import</span>
                 </>
               )}
@@ -256,46 +256,46 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
           </div>
         </div>
 
-        {/* Module 2: CSV Export & Sovereign JSON Backup */}
+        {/* Module 2: CSV Export & Sovereign JSON Backup (Liquid Glass) */}
         <div className="space-y-6">
           
           {/* CSV Export Card */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xs dark:shadow-slate-950/40 space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-400 flex items-center justify-center border border-blue-200/60 dark:border-blue-900/40 shadow-2xs">
                 <Download className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Export Ledger as CSV</h3>
-                <p className="text-xs text-slate-500">Download formatted transactions for spreadsheets or accountants</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Export Ledger as CSV</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Download formatted transactions for spreadsheets or accountants</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               Generates a standardized `.csv` file containing transaction IDs, dates, payees, categorized allocations, associated accounts, and amounts in both major currency units and minor integer precision.
             </p>
 
             <a
               href="/api/data/export/csv"
-              className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-semibold px-4 py-2 rounded-xl text-xs transition-colors shadow-2xs"
+              className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors shadow-2xs"
             >
               <Download className="w-3.5 h-3.5" /> Download Transactions CSV
             </a>
           </div>
 
           {/* Full Sovereign JSON Backup Card */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xs dark:shadow-slate-950/40 space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-800 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-400 flex items-center justify-center border border-purple-200/60 dark:border-purple-900/40 shadow-2xs">
                 <Database className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Complete Sovereign JSON Backup</h3>
-                <p className="text-xs text-slate-500">Unencrypted portable snapshot of your entire database</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Complete Sovereign JSON Backup</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Unencrypted portable snapshot of your entire database</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               Back up your entire personal finance state: profiles, accounts, categories, transactions, split allocations, recurring rules, and goals in a single portable JSON file.
             </p>
 
@@ -303,12 +303,12 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
               <button
                 type="button"
                 onClick={handleDownloadBackup}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-sm"
+                className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
               >
                 <Download className="w-3.5 h-3.5" /> Download JSON Snapshot
               </button>
 
-              <label className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs">
+              <label className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs">
                 <Upload className="w-3.5 h-3.5" /> Restore from JSON
                 <input
                   type="file"
@@ -320,25 +320,25 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
             </div>
 
             {restoreResult && (
-              <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-xl border border-emerald-200">
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-xs rounded-xl border border-emerald-200 dark:border-emerald-900/40">
                 {restoreResult}
               </div>
             )}
           </div>
 
           {/* Clean Slate / Wipe Dummy Records Card */}
-          <div className="bg-white p-6 rounded-2xl border border-rose-200/80 shadow-xs space-y-4">
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-rose-200/80 dark:border-rose-900/40 shadow-xs space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-800 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400 flex items-center justify-center border border-rose-200/60 dark:border-rose-900/40 shadow-2xs">
                 <Trash2 className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Clean Slate / Reset Dummy Records</h3>
-                <p className="text-xs text-slate-500">Remove all sample or demo transactions to start tracking real expenses</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Clean Slate / Reset Dummy Records</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Remove all sample or demo transactions to start tracking real expenses</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               If your workspace contains pre-populated dummy transactions from the initial demo tour, you can wipe them all at once. Your accounts, categories, and settings will be preserved, while account balances will be restored to their starting balances.
             </p>
 
@@ -348,7 +348,7 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
                 type="button"
                 onClick={() => setIsConfirmingClear(true)}
                 disabled={clearing}
-                className="bg-rose-600 hover:bg-rose-500 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-50"
+                className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50"
               >
                 {clearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                 <span>{clearing ? 'Clearing Records...' : 'Clear All Transactions (Start Fresh)'}</span>
@@ -356,7 +356,7 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
             </div>
 
             {clearResult && (
-              <div className="p-3 bg-slate-100 text-slate-800 text-xs rounded-xl border border-slate-200">
+              <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs rounded-xl border border-slate-200 dark:border-slate-700">
                 {clearResult}
               </div>
             )}

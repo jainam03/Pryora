@@ -188,8 +188,8 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Subscriptions & Recurring Commitments</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Subscriptions & Recurring Commitments</h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Track fixed commitments, monthly equivalents, and auto-advance payment calendars.
           </p>
         </div>
@@ -198,76 +198,76 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({
           id="btn_add_recurring"
           type="button"
           onClick={openAddModal}
-          className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-sm"
+          className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold px-4 py-2.5 rounded-2xl text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-sm active:scale-95 shrink-0"
         >
-          <Plus className="w-4 h-4" /> Add Subscription / Obligation
+          <Plus className="w-4 h-4 stroke-[2.5]" /> Add Subscription / Obligation
         </button>
       </div>
 
       {statusNotice && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between animate-in fade-in">
+        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between animate-in fade-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>{statusNotice}</span>
           </div>
-          <button type="button" onClick={() => setStatusNotice(null)} className="text-emerald-700 hover:text-emerald-900 font-bold ml-2">
+          <button type="button" onClick={() => setStatusNotice(null)} className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 font-bold ml-2">
             ✕
           </button>
         </div>
       )}
 
       {statusError && (
-        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between animate-in fade-in">
+        <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/40 text-rose-800 dark:text-rose-300 text-xs flex items-center justify-between animate-in fade-in">
           <span>{statusError}</span>
-          <button type="button" onClick={() => setStatusError(null)} className="text-rose-700 hover:text-rose-900 font-bold ml-2">
+          <button type="button" onClick={() => setStatusError(null)} className="text-rose-700 dark:text-rose-400 hover:text-rose-900 font-bold ml-2">
             ✕
           </button>
         </div>
       )}
 
-      {/* Summary Cards */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Summary Cards (Liquid Glass) */}
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xs dark:shadow-slate-950/40 grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div>
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Monthly Recurring Commitment</span>
-          <div className="text-2xl font-black text-slate-900 mt-1">
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Monthly Recurring Commitment</span>
+          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">
             {formatMinorUnits(summary.total_monthly_recurring_expense_minor || 0, currency)}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Normalized monthly cost of all recurring rules</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Normalized monthly cost of all recurring rules</p>
         </div>
 
-        <div>
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Subscriptions</span>
-          <div className="text-2xl font-black text-indigo-700 mt-1">
+        <div className="border-t sm:border-t-0 sm:border-l border-slate-100 dark:border-slate-800 pt-4 sm:pt-0 sm:pl-5">
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Subscriptions</span>
+          <div className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-1 tracking-tight">
             {summary.active_subscriptions_count || 0}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
             {formatMinorUnits(summary.total_monthly_subscription_minor || 0, currency)} / month
           </p>
         </div>
 
-        <div>
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Annualized Subscription Drain</span>
-          <div className="text-2xl font-black text-slate-900 mt-1">
+        <div className="border-t sm:border-t-0 sm:border-l border-slate-100 dark:border-slate-800 pt-4 sm:pt-0 sm:pl-5">
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Annualized Subscription Drain</span>
+          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">
             {formatMinorUnits(summary.total_annual_subscription_minor || 0, currency)}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Annual subscription burn rate</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Annual subscription burn rate</p>
         </div>
       </div>
 
       {/* Rules List */}
       {loading ? (
-        <div className="p-12 text-center text-xs text-slate-400">Loading recurring rules...</div>
+        <div className="p-12 text-center text-xs text-slate-400 dark:text-slate-500">Loading recurring rules...</div>
       ) : rules.length === 0 ? (
-        <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-3">
-          <CalendarClock className="w-10 h-10 text-slate-300 mx-auto" />
-          <h3 className="text-sm font-bold text-slate-800">No subscriptions or recurring obligations tracked</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-12 rounded-3xl border border-slate-200/80 dark:border-white/10 text-center space-y-3">
+          <CalendarClock className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No subscriptions or recurring obligations tracked</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
             Add recurring rent, streaming services, gym memberships, or utilities to receive upcoming payment reminders.
           </p>
           <button
             type="button"
             onClick={openAddModal}
-            className="mt-2 inline-flex items-center gap-1.5 bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-xl"
+            className="mt-2 inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm active:scale-95"
           >
             <Plus className="w-4 h-4" /> Add First Obligation
           </button>
@@ -275,18 +275,18 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {rules.map(rule => (
-            <div key={rule.id} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
+            <div key={rule.id} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xs dark:shadow-slate-950/40 flex flex-col justify-between space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-slate-900">{rule.merchant}</h4>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">{rule.merchant}</h4>
                     {rule.is_subscription === 1 && (
-                      <span className="text-[9px] font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100">
+                      <span className="text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-900/40">
                         Sub
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     {rule.frequency} • {rule.account_name}
                   </p>
                 </div>
@@ -294,7 +294,7 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDeleteRule(rule.id, rule.merchant)}
-                  className="text-slate-400 hover:text-red-600 p-1 rounded"
+                  className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -302,32 +302,32 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({
 
               <div className="space-y-1">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xl font-black text-slate-900">
+                  <span className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
                     {formatMinorUnits(rule.amount_minor, currency)}
                   </span>
-                  <span className="text-xs font-semibold text-slate-500 capitalize">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 capitalize">
                     per {rule.frequency === 'yearly' ? 'year' : rule.frequency === 'weekly' ? 'week' : 'month'}
                   </span>
                 </div>
 
                 {rule.frequency !== 'monthly' && (
-                  <div className="text-[11px] text-slate-400">
-                    Monthly equivalent: <strong>{formatMinorUnits(rule.monthly_equivalent_minor, currency)}</strong>
+                  <div className="text-xs text-slate-400 dark:text-slate-500">
+                    Monthly equivalent: <strong className="text-slate-700 dark:text-slate-300">{formatMinorUnits(rule.monthly_equivalent_minor, currency)}</strong>
                   </div>
                 )}
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Next: <strong>{rule.next_expected_date}</strong></span>
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                  <span>Next: <strong className="text-slate-900 dark:text-white">{rule.next_expected_date}</strong></span>
                 </div>
 
                 <button
                   type="button"
                   disabled={recordingId === rule.id}
                   onClick={() => handleRecordNow(rule.id, rule.merchant)}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all shadow-sm active:scale-95 disabled:opacity-50"
                   title="Record transaction now & roll date forward"
                 >
                   <Zap className="w-3 h-3" /> Record Now
@@ -340,37 +340,37 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({
 
       {/* Add Obligation Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-sm font-bold text-slate-900">Add Recurring Obligation</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4">
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200/80 dark:border-white/10 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Add Recurring Obligation</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {error && (
-              <div className="mx-6 mt-4 p-3 rounded-xl bg-red-50 text-red-700 text-xs border border-red-200">
+              <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs border border-rose-200 dark:border-rose-900/40">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSaveRule} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Service / Payee</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Service / Payee</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Netflix, Rent, Gym Membership, Internet"
                   value={merchant}
                   onChange={e => setMerchant(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Amount ({currency})</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Amount ({currency})</label>
                   <input
                     type="number"
                     step="any"
@@ -378,16 +378,16 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({
                     placeholder="0.00"
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-sm font-bold text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Frequency</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Frequency</label>
                   <select
                     value={frequency}
                     onChange={e => setFrequency(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"
                   >
                     <option value="weekly">Weekly</option>
                     <option value="monthly">Monthly</option>
@@ -399,11 +399,11 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Account</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Payment Account</label>
                   <select
                     value={accountId}
                     onChange={e => setAccountId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"
                   >
                     {accounts.map(a => (
                       <option key={a.id} value={a.id}>
@@ -414,13 +414,13 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Next Expected Date</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Next Expected Date</label>
                   <input
                     type="date"
                     required
                     value={nextExpectedDate}
                     onChange={e => setNextExpectedDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -433,22 +433,22 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({
                   onChange={e => setIsSubscription(e.target.checked)}
                   className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                 />
-                <label htmlFor="chk_is_sub" className="text-xs font-semibold text-slate-700">
+                <label htmlFor="chk_is_sub" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Classify as active digital subscription
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-5 py-2 rounded-xl shadow-sm"
+                  className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm active:scale-95"
                 >
                   Save Obligation
                 </button>

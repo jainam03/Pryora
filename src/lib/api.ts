@@ -2,17 +2,19 @@
  * PRYORA Frontend API Client
  */
 
+import { safeGetItem, safeSetItem, safeRemoveItem } from './storage';
+
 const TOKEN_KEY = 'pryora_auth_token';
 
 export function getStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  return safeGetItem(TOKEN_KEY);
 }
 
 export function setStoredToken(token: string | null): void {
   if (token) {
-    localStorage.setItem(TOKEN_KEY, token);
+    safeSetItem(TOKEN_KEY, token);
   } else {
-    localStorage.removeItem(TOKEN_KEY);
+    safeRemoveItem(TOKEN_KEY);
   }
 }
 
