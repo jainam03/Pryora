@@ -22,7 +22,12 @@ import {
   ChevronUp,
 } from 'lucide-react';
 
-export const AuthScreen: React.FC = () => {
+interface AuthScreenProps {
+  onBackToLanding?: () => void;
+  initialMode?: 'signin' | 'signup';
+}
+
+export const AuthScreen: React.FC<AuthScreenProps> = ({ onBackToLanding }) => {
   const { login, quickStart, loginDemo, loginWithGoogle } = useAuth();
 
   const [email, setEmail] = useState<string>('');
@@ -107,6 +112,16 @@ export const AuthScreen: React.FC = () => {
 
       {/* Header Branding */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center relative z-10 px-4">
+        {onBackToLanding && (
+          <button
+            type="button"
+            onClick={onBackToLanding}
+            className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-emerald-400 transition-colors"
+          >
+            <span>←</span>
+            <span>Back to Priyora Home</span>
+          </button>
+        )}
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500 text-slate-950 font-black text-xl tracking-tighter mb-3 shadow-lg shadow-emerald-500/25">
           P
         </div>

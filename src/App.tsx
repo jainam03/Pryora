@@ -15,6 +15,7 @@ import { GoalsView } from './components/GoalsView';
 import { AnalyticsView } from './components/AnalyticsView';
 import { DataHubView } from './components/DataHubView';
 import { AuthScreen } from './components/AuthScreen';
+import { LandingPageView } from './components/LandingPageView';
 import { OnboardingModal } from './components/OnboardingModal';
 import { TransactionModal } from './components/TransactionModal';
 import { ReceiptViewerModal } from './components/ReceiptViewerModal';
@@ -24,6 +25,9 @@ import { Loader2 } from 'lucide-react';
 
 const MainApp: React.FC = () => {
   const { user, isLoading, refreshUser } = useAuth();
+
+  // Root view mode: defaults to 'landing' so every visit starts on the professional landing page
+  const [currentView, setCurrentView] = useState<'landing' | 'app' | 'auth'>('landing');
 
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -66,6 +70,13 @@ const MainApp: React.FC = () => {
     }
   }, [user, loadAllData]);
 
+  // If user signs in while on auth screen, transition to app
+  useEffect(() => {
+    if (user && currentView === 'auth') {
+      setCurrentView('app');
+    }
+  }, [user, currentView]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
@@ -80,8 +91,43 @@ const MainApp: React.FC = () => {
     );
   }
 
+  // 1. Landing Page View (Primary entry point)
+  if (currentView === 'landing') {
+    return (
+      <LandingPageView
+        onLaunchApp={() => {
+          if (user) {
+            setCurrentView('app');
+          } else {
+            setCurrentView('auth');
+          }
+        }}
+        onOpenAuth={() => setCurrentView('auth')}
+      />
+    );
+  }
+
+  // 2. Authentication Screen
+  if (currentView === 'auth') {
+    if (user) {
+      // Already authenticated, proceed to app
+      setCurrentView('app');
+    } else {
+      return (
+        <AuthScreen
+          onBackToLanding={() => setCurrentView('landing')}
+        />
+      );
+    }
+  }
+
+  // 3. User unauthenticated in app mode fallback
   if (!user) {
-    return <AuthScreen />;
+    return (
+      <AuthScreen
+        onBackToLanding={() => setCurrentView('landing')}
+      />
+    );
   }
 
   // Show Onboarding if user hasn't completed setup yet
@@ -129,6 +175,7 @@ const MainApp: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenTransactionModal={() => handleOpenTransactionModal()}
+        onNavigateLanding={() => setCurrentView('landing')}
       />
 
       {/* Main Content Area (extra bottom padding on mobile for floating dock) */}

@@ -105,7 +105,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to start usi
 ## 📁 Project Structure
 
 ```
-├── api/                  # Serverless function handlers (Vercel deployment)
 ├── data/                 # Local data storage & database migrations
 ├── public/               # Static assets & icons
 ├── server/               # Express backend controllers, routes, and DB layers

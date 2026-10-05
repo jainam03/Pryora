@@ -46,12 +46,14 @@ interface NavigationProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   onOpenTransactionModal: () => void;
+  onNavigateLanding?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
   activeTab,
   setActiveTab,
   onOpenTransactionModal,
+  onNavigateLanding,
 }) => {
   const { user, logout, isFirebaseAuth } = useAuth();
   const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
@@ -158,7 +160,17 @@ export const Navigation: React.FC<NavigationProps> = ({
               </button>
 
               {/* Storage Backend Badge (Desktop) */}
-              <div className="hidden xl:flex items-center">
+              <div className="hidden xl:flex items-center gap-2">
+                {onNavigateLanding && (
+                  <button
+                    type="button"
+                    onClick={onNavigateLanding}
+                    title="View Priyora Landing Page"
+                    className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-2.5 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors"
+                  >
+                    Home
+                  </button>
+                )}
                 {isFirebaseAuth ? (
                   <div
                     title="Your data is saved to your private Google Firebase Firestore cloud database"
@@ -248,13 +260,27 @@ export const Navigation: React.FC<NavigationProps> = ({
                   ({user?.currency || 'INR'})
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={logout}
-                className="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1 py-1 px-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40"
-              >
-                <LogOut className="w-3.5 h-3.5" /> Sign Out
-              </button>
+              <div className="flex items-center gap-2">
+                {onNavigateLanding && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onNavigateLanding();
+                    }}
+                    className="text-slate-600 dark:text-slate-400 font-semibold py-1 px-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    Home Page
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1 py-1 px-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                >
+                  <LogOut className="w-3.5 h-3.5" /> Sign Out
+                </button>
+              </div>
             </div>
           </div>
         )}
