@@ -39,7 +39,7 @@ export interface AutoCategoryResult {
 /**
  * Intelligent keyword-based heuristic fallback
  */
-function heuristicMatch(merchant: string, categories: CategoryCandidate[]): AutoCategoryResult {
+export function heuristicMatch(merchant: string, categories: CategoryCandidate[]): AutoCategoryResult {
   const norm = merchant.toLowerCase().trim();
 
   const rules: Array<{ keywords: string[]; targetName: string; reason: string }> = [
@@ -204,9 +204,8 @@ function heuristicMatch(merchant: string, categories: CategoryCandidate[]): Auto
 }
 
 /**
- * Suggests the best matching category for a given merchant name.
- * Uses Gemini 3.8 Flash model when available, seamlessly falling back
- * to a high-accuracy heuristic engine.
+ * Suggests the best matching category for a given merchant name
+ * using deterministic keyword heuristics.
  */
 export async function suggestCategoryForMerchant(
   merchant: string,
@@ -223,84 +222,6 @@ export async function suggestCategoryForMerchant(
     };
   }
 
-  // In test environment or if Gemini client is not configured, use heuristic engine
-  if (process.env.NODE_ENV === 'test' || !aiClient) {
-    return heuristicMatch(cleanMerchant, categories);
-  }
-
-  try {
-    const categoryListPrompt = categories
-      .map(c => `- ID: "${c.id}", Name: "${c.name}"`)
-      .join('\n');
-
-    const response = await aiClient.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: `You are an AI financial expense categorization engine.
-Classify the following purchase or merchant into exactly ONE of the user's available categories.
-
-Merchant / Payee: "${cleanMerchant}"
-
-Available Categories:
-${categoryListPrompt}
-
-Select the most logical category from the list above. Return the category's exact ID, its exact name, a confidence score between 0.0 and 1.0, and a concise 1-sentence explanation of why this merchant matches this category.`,
-      config: {
-        systemInstruction:
-          'You are a high-precision personal finance categorization model. You analyze commercial merchant names, restaurant brands, retailers, transit providers, and utilities to return the single best category match.',
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            categoryId: {
-              type: Type.STRING,
-              description: 'The exact ID of the chosen category from the available list',
-            },
-            categoryName: {
-              type: Type.STRING,
-              description: 'The exact name of the chosen category from the available list',
-            },
-            confidence: {
-              type: Type.NUMBER,
-              description: 'Confidence level from 0.0 to 1.0',
-            },
-            reason: {
-              type: Type.STRING,
-              description: 'A brief 1-sentence rationale for the categorization choice',
-            },
-          },
-          required: ['categoryName', 'confidence', 'reason'],
-        },
-      },
-    });
-
-    const text = response.text?.trim();
-    if (!text) {
-      return heuristicMatch(cleanMerchant, categories);
-    }
-
-    const parsed = JSON.parse(text);
-
-    // Validate that categoryId exists in user's category candidate list
-    let matchedCat = categories.find(c => c.id === parsed.categoryId);
-    if (!matchedCat && parsed.categoryName) {
-      matchedCat = categories.find(
-        c => c.name.toLowerCase() === parsed.categoryName.toLowerCase()
-      );
-    }
-
-    if (matchedCat) {
-      return {
-        categoryId: matchedCat.id,
-        categoryName: matchedCat.name,
-        confidence: typeof parsed.confidence === 'number' ? Math.min(1, Math.max(0.1, parsed.confidence)) : 0.9,
-        reason: parsed.reason || `Identified as ${matchedCat.name}`,
-        source: 'gemini',
-      };
-    }
-
-    return heuristicMatch(cleanMerchant, categories);
-  } catch (err) {
-    console.warn('Gemini categorization failed or unavailable, falling back to heuristics:', err);
-    return heuristicMatch(cleanMerchant, categories);
-  }
+  return heuristicMatch(cleanMerchant, categories);
 }
+

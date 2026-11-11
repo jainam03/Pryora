@@ -1,42 +1,42 @@
 /**
- * PRYORA Data Hub (Import / Export / Sovereign Backups)
+ * PRYORA Data Hub (Excel / CSV Import Wizard, Spreadsheet Exports & Sovereign Backups)
  */
 
 import React, { useState } from 'react';
-import { Account } from '../types';
+import * as XLSX from 'xlsx';
+import { Account, Category } from '../types';
 import { apiRequest } from '../lib/api';
 import { ConfirmDialog } from './common/ConfirmDialog';
+import { SpreadsheetImportWizard } from './SpreadsheetImportWizard';
 import {
   Upload,
   Download,
   Database,
   FileSpreadsheet,
-  CheckCircle2,
-  AlertCircle,
-  ShieldCheck,
-  RefreshCw,
   Loader2,
   Trash2,
 } from 'lucide-react';
 
 interface DataHubViewProps {
   accounts: Account[];
+  categories?: Category[];
   onDataChanged: () => void;
+  onNavigateToLedger?: () => void;
 }
 
-export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChanged }) => {
-  const [targetAccountId, setTargetAccountId] = useState<string>(accounts[0]?.id || '');
-  const [csvContent, setCsvContent] = useState<string>('');
-  const [fileName, setFileName] = useState<string>('');
-  const [importing, setImporting] = useState<boolean>(false);
-  const [importResult, setImportResult] = useState<any | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
-
+export const DataHubView: React.FC<DataHubViewProps> = ({
+  accounts,
+  categories = [],
+  onDataChanged,
+  onNavigateToLedger,
+}) => {
   // JSON restore
-  const [restoreFile, setRestoreFile] = useState<string>('');
   const [restoring, setRestoring] = useState<boolean>(false);
   const [restoreResult, setRestoreResult] = useState<string | null>(null);
   const [pendingRestoreData, setPendingRestoreData] = useState<any | null>(null);
+
+  // Excel export loading
+  const [exportingExcel, setExportingExcel] = useState<boolean>(false);
 
   // Clear demo data
   const [clearing, setClearing] = useState<boolean>(false);
@@ -64,9 +64,9 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
     if (!pendingRestoreData) return;
     setRestoring(true);
     try {
-      const res = await apiRequest<any>('/api/data/restore/json', {
+      const res = await apiRequest<any>('/api/data/restore', {
         method: 'POST',
-        body: JSON.stringify(pendingRestoreData),
+        body: JSON.stringify({ backupData: pendingRestoreData }),
       });
       setPendingRestoreData(null);
       setRestoreResult(res.message || 'Restored successfully!');
@@ -78,59 +78,60 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setFileName(file.name);
-    setImportResult(null);
-    setImportError(null);
-
-    const reader = new FileReader();
-    reader.onload = event => {
-      const text = event.target?.result as string;
-      setCsvContent(text);
-    };
-    reader.readAsText(file);
-  };
-
-  const handleExecuteImport = async () => {
-    if (!csvContent.trim()) {
-      setImportError('Please select a valid CSV file.');
-      return;
-    }
-
-    if (!targetAccountId) {
-      setImportError('Please select a destination account for the imported records.');
-      return;
-    }
-
-    setImporting(true);
-    setImportResult(null);
-    setImportError(null);
-
+  const handleDownloadBackup = async () => {
     try {
-      const res = await apiRequest<any>('/api/data/import/csv', {
-        method: 'POST',
-        body: JSON.stringify({
-          accountId: targetAccountId,
-          csvContent,
-        }),
-      });
-
-      setImportResult(res);
-      setCsvContent('');
-      setFileName('');
-      onDataChanged();
-    } catch (err: any) {
-      setImportError(err.message || 'Import failed. Verify CSV format.');
-    } finally {
-      setImporting(false);
+      const data = await apiRequest<any>('/api/data/export/json');
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pryora_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      window.location.href = '/api/data/export/json';
     }
   };
 
-  const handleDownloadBackup = () => {
-    window.location.href = '/api/data/backup/json';
+  const handleExportCsv = async () => {
+    try {
+      const token = localStorage.getItem('pryora_session_token');
+      const res = await fetch('/api/data/export/csv', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pryora_transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      window.location.href = '/api/data/export/csv';
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setExportingExcel(true);
+    try {
+      const token = localStorage.getItem('pryora_session_token');
+      const res = await fetch('/api/data/export/csv', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Could not export ledger');
+      const csvText = await res.text();
+      const wb = XLSX.read(csvText, { type: 'string' });
+      XLSX.writeFile(wb, `pryora_transactions_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (err) {
+      console.error('Excel export failed:', err);
+    } finally {
+      setExportingExcel(false);
+    }
   };
 
   const handleRestoreUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,162 +155,108 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
     <div className="space-y-6 pb-12">
       {/* Top Bar */}
       <div>
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Data Hub & Sovereign Ownership</h2>
+        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+          Data Hub & Sovereign Ownership
+        </h2>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          Zero vendor lock-in. Import bank statements, export spreadsheets, and generate complete unencrypted ledger backups.
+          Zero vendor lock-in. Import multi-sheet Excel workbooks or bank CSV statements, export spreadsheets, and manage full ledger backups.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Module 1: CSV Statement Import (Liquid Glass) */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xs dark:shadow-slate-950/40 space-y-5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-900/40 shadow-2xs">
-              <Upload className="w-4 h-4" />
+      {/* Primary Module: Full-Width Step-by-Step Excel (.xlsx / .xls) & CSV Import Wizard */}
+      <SpreadsheetImportWizard
+        accounts={accounts}
+        categories={categories}
+        onDataChanged={onDataChanged}
+        onNavigateToLedger={onNavigateToLedger}
+      />
+
+      {/* Secondary Modules: Exports, Sovereign JSON Backups & Workspace Reset */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Card 1: Export Ledger (Excel .xlsx & CSV) */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-700 dark:text-blue-400 flex items-center justify-center border border-blue-500/20">
+                <FileSpreadsheet className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Export Ledger Spreadsheet
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Excel (.xlsx) or RFC-4180 CSV
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Import Bank / Card CSV</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Supports standard HDFC, Chase, Amex, ICICI & CSV exports</p>
-            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Download all recorded transactions with dates, payees, categories, accounts, and formatted amounts for Excel analysis or tax preparation.
+            </p>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                Destination Account
-              </label>
-              <select
-                value={targetAccountId}
-                onChange={e => setTargetAccountId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"
-              >
-                {accounts.map(a => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} ({a.type})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Drag & Drop File Input */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                Select CSV File
-              </label>
-              <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-2xl p-6 text-center cursor-pointer transition-colors relative bg-slate-50/50 dark:bg-slate-800/40">
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={handleFileUpload}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
-                <FileSpreadsheet className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto mb-2" />
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                  {fileName ? fileName : 'Click or drop your .csv statement here'}
-                </span>
-                <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 block">
-                  Columns: Date, Payee/Description, Amount, Category (optional)
-                </span>
-              </div>
-            </div>
-
-            {importError && (
-              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/40 text-rose-700 dark:text-rose-300 text-xs rounded-2xl flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{importError}</span>
-              </div>
-            )}
-
-            {importResult && (
-              <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-300 text-xs rounded-2xl flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <div>
-                  <strong className="font-bold">{importResult.imported_count} transaction(s) imported successfully!</strong>
-                  {importResult.skipped_count > 0 && (
-                    <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                      ({importResult.skipped_count} row(s) skipped due to missing dates or zero values)
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            <button
+              type="button"
+              disabled={exportingExcel}
+              onClick={handleExportExcel}
+              className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+            >
+              {exportingExcel ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              <span>Export Excel (.xlsx)</span>
+            </button>
 
             <button
               type="button"
-              disabled={!csvContent || importing}
-              onClick={handleExecuteImport}
-              className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 text-xs font-bold py-3 rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleExportCsv}
+              className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
             >
-              {importing ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Processing CSV...</span>
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 stroke-[2.5]" />
-                  <span>Execute Statement Import</span>
-                </>
-              )}
+              <Download className="w-3.5 h-3.5" />
+              <span>Export CSV</span>
             </button>
           </div>
         </div>
 
-        {/* Module 2: CSV Export & Sovereign JSON Backup (Liquid Glass) */}
-        <div className="space-y-6">
-          
-          {/* CSV Export Card */}
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xs dark:shadow-slate-950/40 space-y-4">
+        {/* Card 2: Complete Sovereign JSON Backup */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-400 flex items-center justify-center border border-blue-200/60 dark:border-blue-900/40 shadow-2xs">
-                <Download className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Export Ledger as CSV</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Download formatted transactions for spreadsheets or accountants</p>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Generates a standardized `.csv` file containing transaction IDs, dates, payees, categorized allocations, associated accounts, and amounts in both major currency units and minor integer precision.
-            </p>
-
-            <a
-              href="/api/data/export/csv"
-              className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5" /> Download Transactions CSV
-            </a>
-          </div>
-
-          {/* Full Sovereign JSON Backup Card */}
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xs dark:shadow-slate-950/40 space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-400 flex items-center justify-center border border-purple-200/60 dark:border-purple-900/40 shadow-2xs">
+              <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-700 dark:text-purple-400 flex items-center justify-center border border-purple-500/20">
                 <Database className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Complete Sovereign JSON Backup</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Unencrypted portable snapshot of your entire database</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Sovereign JSON Backup
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Portable snapshot of your entire ledger
+                </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Back up your entire personal finance state: profiles, accounts, categories, transactions, split allocations, recurring rules, and goals in a single portable JSON file.
+              Back up or restore your complete financial workspace: accounts, categories, transactions, split allocations, recurring rules, and goals.
             </p>
+          </div>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
               <button
                 type="button"
                 onClick={handleDownloadBackup}
-                className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
               >
-                <Download className="w-3.5 h-3.5" /> Download JSON Snapshot
+                <Download className="w-3.5 h-3.5" />
+                <span>Download JSON</span>
               </button>
 
-              <label className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs">
-                <Upload className="w-3.5 h-3.5" /> Restore from JSON
+              <label className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap shrink-0">
+                <Upload className="w-3.5 h-3.5" />
+                <span>Restore JSON</span>
                 <input
                   type="file"
                   accept=".json,application/json"
@@ -320,53 +267,57 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
             </div>
 
             {restoreResult && (
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-xs rounded-xl border border-emerald-200 dark:border-emerald-900/40">
+              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-xs rounded-xl border border-emerald-200 dark:border-emerald-900/40">
                 {restoreResult}
               </div>
             )}
           </div>
+        </div>
 
-          {/* Clean Slate / Wipe Dummy Records Card */}
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-rose-200/80 dark:border-rose-900/40 shadow-xs space-y-4">
+        {/* Card 3: Clean Slate / Reset Dummy Records */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-rose-200/80 dark:border-rose-900/40 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400 flex items-center justify-center border border-rose-200/60 dark:border-rose-900/40 shadow-2xs">
+              <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-700 dark:text-rose-400 flex items-center justify-center border border-rose-500/20">
                 <Trash2 className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Clean Slate / Reset Dummy Records</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Remove all sample or demo transactions to start tracking real expenses</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Clean Slate / Reset Records
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Clear sample transactions & reset balances
+                </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              If your workspace contains pre-populated dummy transactions from the initial demo tour, you can wipe them all at once. Your accounts, categories, and settings will be preserved, while account balances will be restored to their starting balances.
+              Wipe pre-populated demo transactions while keeping your accounts and categories intact, resetting account balances to starting values.
             </p>
+          </div>
 
-            <div>
-              <button
-                id="btn_clear_dummy_data"
-                type="button"
-                onClick={() => setIsConfirmingClear(true)}
-                disabled={clearing}
-                className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50"
-              >
-                {clearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                <span>{clearing ? 'Clearing Records...' : 'Clear All Transactions (Start Fresh)'}</span>
-              </button>
-            </div>
+          <div className="space-y-2">
+            <button
+              id="btn_clear_dummy_data"
+              type="button"
+              onClick={() => setIsConfirmingClear(true)}
+              disabled={clearing}
+              className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 whitespace-nowrap shrink-0"
+            >
+              {clearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              <span>{clearing ? 'Clearing Records...' : 'Clear All Transactions'}</span>
+            </button>
 
             {clearResult && (
-              <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs rounded-xl border border-slate-200 dark:border-slate-700">
                 {clearResult}
               </div>
             )}
           </div>
-
         </div>
-
       </div>
 
-      {/* Confirmation Dialog for Clearing Transactions (Iframe-safe, replaces window.confirm) */}
+      {/* Confirmation Dialog for Clearing Transactions */}
       <ConfirmDialog
         isOpen={isConfirmingClear}
         title="Clear All Transactions"
@@ -379,11 +330,11 @@ export const DataHubView: React.FC<DataHubViewProps> = ({ accounts, onDataChange
         }}
       />
 
-      {/* Confirmation Dialog for Restoring Backup (Iframe-safe, replaces window.confirm) */}
+      {/* Confirmation Dialog for Restoring Backup */}
       <ConfirmDialog
         isOpen={!!pendingRestoreData}
         title="Restore Database Backup"
-        message="Are you sure you want to restore the database from this backup? Existing records will be replaced with the contents of the backup."
+        message="Are you sure you want to restore the database from this backup? Existing records will be merged with the contents of the backup."
         confirmLabel="Restore Database"
         isDestructive={false}
         isLoading={restoring}

@@ -12,6 +12,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   LayoutDashboard,
   ReceiptText,
@@ -26,10 +27,8 @@ import {
   Sun,
   Moon,
   Cloud,
-  Sparkles,
   Menu,
   X,
-  ChevronRight,
 } from 'lucide-react';
 
 export type TabType = 
@@ -56,7 +55,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onNavigateLanding,
 }) => {
   const { user, logout, isFirebaseAuth } = useAuth();
-  const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
+  const { resolvedTheme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   const primaryNavItems: Array<{ id: TabType; label: string; icon: React.ComponentType<{ className?: string }> }> = [
@@ -143,6 +142,11 @@ export const Navigation: React.FC<NavigationProps> = ({
                 <span className="hidden sm:inline">Log Expense</span>
               </button>
 
+              {/* Install PWA Button (Desktop Header) */}
+              <div className="hidden md:block">
+                <PWAInstallButton variant="header" />
+              </div>
+
               {/* Light / Dark Mode Toggle */}
               <button
                 id="btn_theme_toggle"
@@ -184,7 +188,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                     title="Demo Sandbox with pre-populated sample data. Sign in with Google to switch to real Firebase cloud storage."
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+                    <Database className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                     <span>Demo Sandbox</span>
                   </div>
                 )}
@@ -249,6 +253,11 @@ export const Navigation: React.FC<NavigationProps> = ({
                   </button>
                 );
               })}
+            </div>
+
+            {/* Mobile Install App CTA */}
+            <div>
+              <PWAInstallButton variant="mobile-menu" />
             </div>
 
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">

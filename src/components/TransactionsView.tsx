@@ -15,10 +15,13 @@ import { apiRequest } from '../lib/api';
 import { formatMinorUnits } from '../lib/currency';
 import { useAuth } from '../context/AuthContext';
 import { ConfirmDialog } from './common/ConfirmDialog';
+import { SpreadsheetImportWizard } from './SpreadsheetImportWizard';
 import {
   Search,
   Filter,
   Download,
+  Upload,
+  FileSpreadsheet,
   Plus,
   Trash2,
   Copy,
@@ -121,6 +124,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   const [isDeletingTx, setIsDeletingTx] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
 
   const handleDelete = (id: string, merchant: string) => {
     setActionError(null);
@@ -198,21 +202,32 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            id="btn_import_spreadsheet"
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            className="bg-white/80 dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-2xs whitespace-nowrap shrink-0"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Import Excel / CSV</span>
+          </button>
           <button
             type="button"
             onClick={handleExportCsv}
-            className="bg-white/80 dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+            className="bg-white/80 dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-2xs whitespace-nowrap shrink-0"
           >
-            <Download className="w-3.5 h-3.5" /> Export CSV
+            <Download className="w-3.5 h-3.5" />
+            <span>Export CSV</span>
           </button>
           <button
             id="btn_record_transaction"
             type="button"
             onClick={onOpenCreateModal}
-            className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+            className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 whitespace-nowrap shrink-0"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" /> Record Transaction
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Record Transaction</span>
           </button>
         </div>
       </div>
@@ -641,6 +656,24 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
           if (!isDeletingTx) setTxToDelete(null);
         }}
       />
+
+      {/* Excel / CSV Import Wizard Modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-xs overflow-y-auto">
+          <div className="w-full max-w-5xl my-auto">
+            <SpreadsheetImportWizard
+              accounts={accounts}
+              categories={categories}
+              isModal={true}
+              onCloseModal={() => setIsImportModalOpen(false)}
+              onDataChanged={() => {
+                fetchTransactions();
+                onDataChanged();
+              }}
+            />
+          </div>
+        </div>
+      )}
 
     </div>
   );

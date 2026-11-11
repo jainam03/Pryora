@@ -24,7 +24,6 @@ import {
   ArrowRightLeft,
   TrendingDown,
   TrendingUp,
-  Tag as TagIcon,
   AlertCircle,
   Check,
   Sparkles,
@@ -126,7 +125,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   // Available categories for current transaction type
   const availableCategories = categories.filter(c => c.type === (type === 'income' ? 'income' : 'expense'));
 
-  // Trigger AI Auto-Categorization
+  // Trigger AI Auto-Categorization on demand or debounced
   const triggerAiCategorization = async (merchantName: string) => {
     if (!merchantName || merchantName.trim().length < 2 || isAiSuggesting) return;
     setIsAiSuggesting(true);
@@ -142,7 +141,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
       if (res && res.suggestion) {
         setAiSuggestion(res.suggestion);
-        // Automatically select the category if user has not manually set a specific one
         if (!hasUserManuallyChangedCategory && res.suggestion.categoryId) {
           setCategoryId(res.suggestion.categoryId);
         }
@@ -154,14 +152,18 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   };
 
-  // Debounced auto-categorization when merchant name changes for an expense
+  // Debounced auto-categorization when merchant name changes for a new expense
   useEffect(() => {
-    if (type !== 'expense' || isSplit || !merchant.trim() || merchant.trim().length < 2) {
+    if (
+      type !== 'expense' ||
+      isSplit ||
+      !merchant.trim() ||
+      merchant.trim().length < 2
+    ) {
       setAiSuggestion(null);
       return;
     }
 
-    // Do not auto-retrigger if viewing/editing an existing unchanged transaction
     if (activeTx && activeTx.merchant.trim().toLowerCase() === merchant.trim().toLowerCase()) {
       return;
     }
@@ -201,7 +203,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setSplits([]);
       setReceiptDataUrl(null);
       setReceiptFileName(null);
-      setAiSuggestion(null);
       setHasUserManuallyChangedCategory(false);
     }
     setError(null);
@@ -297,7 +298,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     if (type === 'transfer') {
       if (!toAccountId) {
         setError('Please select a destination account for the transfer.');
-        return;
       }
       if (toAccountId === accountId) {
         setError('Destination account must be different from source account.');

@@ -13,7 +13,7 @@ import {
   calculateBudgetPacing,
   AccountType,
 } from '../server/domain/finance.js';
-import { parseCsvString, exportTransactionsToCsv, normalizeDate } from '../server/domain/csv.js';
+import { parseCsvString, exportTransactionsToCsv, normalizeDate, guessColumnMapping } from '../server/domain/csv.js';
 
 describe('PRYORA Money Domain', () => {
   test('Exact integer conversion prevents floating-point inaccuracies', () => {
@@ -197,9 +197,22 @@ describe('PRYORA RFC-4180 CSV Engine', () => {
     assert.ok(csv.includes('450.00'));
   });
 
-  test('Normalizes various date formats', () => {
+  test('Normalizes various date formats including Excel serial numbers and DD-MMM-YYYY', () => {
     assert.equal(normalizeDate('2026-09-04'), '2026-09-04');
     assert.equal(normalizeDate('04/09/2026', 'DD/MM/YYYY'), '2026-09-04');
     assert.equal(normalizeDate('09/04/2026', 'MM/DD/YYYY'), '2026-09-04');
+    assert.equal(normalizeDate('15-Nov-2026'), '2026-11-15');
+    assert.equal(normalizeDate(44927), '2023-01-01');
+  });
+
+  test('Auto-detects bank statement and expense spreadsheet headers', () => {
+    const bankHeaders = ['Txn Date', 'Narration', 'Withdrawal Amt', 'Deposit Amt', 'Remarks'];
+    const mapping = guessColumnMapping(bankHeaders);
+    assert.equal(mapping.dateCol, 'Txn Date');
+    assert.equal(mapping.merchantCol, 'Narration');
+    assert.equal(mapping.debitCol, 'Withdrawal Amt');
+    assert.equal(mapping.creditCol, 'Deposit Amt');
+    assert.equal(mapping.notesCol, 'Remarks');
   });
 });
+

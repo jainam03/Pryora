@@ -18,6 +18,7 @@ import { recurringRouter } from './routes/recurring.js';
 import { goalsRouter } from './routes/goals.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { dataRouter } from './routes/data.js';
+import { chatRouter } from './routes/chat.js';
 
 let appInstance: Express | null = null;
 let initialized = false;
@@ -57,6 +58,7 @@ export async function getExpressApp(): Promise<Express> {
   app.use('/api/goals', goalsRouter);
   app.use('/api/analytics', analyticsRouter);
   app.use('/api/data', dataRouter);
+  app.use('/api/chat', chatRouter);
 
   appInstance = app;
   return app;

@@ -19,6 +19,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   ArrowRight,
   ShieldCheck,
@@ -67,8 +68,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   const [goalCurrentSaved, setGoalCurrentSaved] = useState<number>(2500);
   const [goalMonthlySavings, setGoalMonthlySavings] = useState<number>(500);
 
-  // FAQ Accordion
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
+  // FAQ Accordion & Category Filter
+  const [activeFaqCategory, setActiveFaqCategory] = useState<'all' | 'privacy' | 'multi-account' | 'workflows'>('all');
+  const [expandedFaq, setExpandedFaq] = useState<string | null>('privacy-credentials');
 
   // Demo Starter state
   const [demoStarting, setDemoStarting] = useState<boolean>(false);
@@ -109,32 +111,88 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   const monthsToGoal = goalMonthlySavings > 0 ? Math.ceil(remainingNeeded / goalMonthlySavings) : 0;
   const progressPercent = goalTargetAmount > 0 ? Math.min(100, Math.round((goalCurrentSaved / goalTargetAmount) * 100)) : 0;
 
-  const faqItems = [
+  const faqItems: Array<{
+    id: string;
+    category: 'privacy' | 'multi-account' | 'workflows';
+    categoryLabel: string;
+    q: string;
+    a: string;
+  }> = [
     {
-      q: 'What is Priyora and what does it currently do?',
-      a: 'Priyora is a personal finance operating system that brings accounts, transactions, category budgets, recurring subscriptions, and savings goals into a single fast dashboard. It supports manual logging, split transactions, receipt image attachments with full-screen preview, smart category suggestions, and local/cloud storage.',
+      id: 'privacy-credentials',
+      category: 'privacy',
+      categoryLabel: 'Data Privacy',
+      q: 'Does PRYORA ever ask for my bank login credentials or connect to third-party aggregators?',
+      a: 'Never. PRYORA is intentionally designed without third-party bank screen-scrapers or credential harvesting. You never hand over your online banking passwords, PINs, or OAuth tokens. Instead, you log transactions directly or import bank statements via standard CSV files—giving you complete immunity from third-party aggregator data breaches.',
     },
     {
-      q: 'How does receipt handling and smart auto-categorization work?',
-      a: 'You can attach receipt photos (PNG, JPG, WebP up to 15MB) to any transaction and inspect them anytime using the built-in Receipt Viewer Modal. When typing a merchant description, Priyora uses AI and heuristic pattern matching to suggest the most appropriate category automatically.',
+      id: 'multi-account-types',
+      category: 'multi-account',
+      categoryLabel: 'Multi-Account Tracking',
+      q: 'What types of financial accounts can I track simultaneously in PRYORA?',
+      a: 'PRYORA supports 8 distinct account classifications out of the box: Checking, Savings, Credit Cards, Cash, Digital Wallets, Investments, Loans, and Other custom accounts. You can create unlimited accounts across these types and view both individual account ledgers and your consolidated Net Worth & Cash Flow in real time.',
     },
     {
-      q: 'Do I need to connect real bank accounts or credentials?',
-      a: 'No. Priyora never asks for bank credentials or sensitive third-party logins. You maintain complete control: record transactions manually, split items across envelopes, or import existing records via standard CSV files.',
+      id: 'privacy-storage-isolation',
+      category: 'privacy',
+      categoryLabel: 'Data Privacy',
+      q: 'Where is my financial data stored, and how is it isolated from other users?',
+      a: 'PRYORA uses a hybrid Local-First + Private Cloud architecture. It runs an in-memory SQLite engine (sql.js) for instant local queries and pairs with Google Firebase Firestore when you sign in. In Firestore, every document—accounts, transactions, budgets, goals, and subscriptions—is strictly isolated to your authenticated user UID and enforced by server-side security rules.',
     },
     {
-      q: 'Where is my data stored? Can I export it?',
-      a: 'You have full data sovereignty. Priyora runs on a local-first SQLite engine and offers optional encrypted Firebase cloud synchronization. In the Data Hub, you can export your complete ledger as CSV or JSON with a single click at any time.',
+      id: 'multi-account-transfers',
+      category: 'multi-account',
+      categoryLabel: 'Multi-Account Tracking',
+      q: 'How does PRYORA handle transfers between my accounts and reconcile balances?',
+      a: 'Every account tracks its initial balance and real-time current balance using integer minor units (cents/paise) to eliminate floating-point rounding errors. When you log an expense, income, or an internal account-to-account transfer (for example, paying off a Credit Card from Checking or moving money into Savings), PRYORA automatically debits the source account and credits the destination account without artificially inflating your monthly spending analytics.',
     },
     {
-      q: 'Does Priyora support multiple currencies?',
-      a: 'Yes. Priyora supports Indian Rupee (INR ₹), US Dollar (USD $), Euro (EUR €), British Pound (GBP £), and multiple other global currencies configured in your user profile.',
+      id: 'multi-account-credit-cards',
+      category: 'multi-account',
+      categoryLabel: 'Multi-Account Tracking',
+      q: 'Does PRYORA offer specialized tracking for Credit Cards alongside bank accounts?',
+      a: 'Yes. When you add a Credit Card account in PRYORA, you can track its total Credit Limit, real-time Available Credit, Credit Utilization percentage, Statement Closing Day, Payment Due Day, and Minimum Payment amount—helping you keep utilization low and avoid late fees across multiple cards.',
     },
     {
-      q: 'Can I test Priyora without signing up?',
-      a: 'Yes. Click "Explore Live Demo" on this landing page to open an interactive sandbox ledger pre-populated with realistic accounts, transactions, category budgets, and recurring subscriptions.',
+      id: 'privacy-export-delete',
+      category: 'privacy',
+      categoryLabel: 'Data Privacy',
+      q: 'Can I export my entire financial ledger or permanently delete my data?',
+      a: 'Yes, you have 100% data sovereignty with zero vendor lock-in. Inside the Data Hub, you can export your complete ledger (transactions, accounts, categories, and metadata) as standard CSV or raw JSON files with a single click. You can also import historical CSV records or permanently wipe and reset your account data at any time.',
+    },
+    {
+      id: 'privacy-monetization',
+      category: 'privacy',
+      categoryLabel: 'Data Privacy',
+      q: 'Are my transaction notes, merchants, or receipt photos shared with advertisers?',
+      a: 'No. PRYORA contains zero ad networks, zero third-party behavioral tracking pixels, and never sells or shares your financial records or uploaded receipt images with data brokers or marketing platforms.',
+    },
+    {
+      id: 'multi-account-currencies',
+      category: 'multi-account',
+      categoryLabel: 'Multi-Account Tracking',
+      q: 'Can I filter transactions by a single account or customize my primary currency?',
+      a: 'Yes. You can filter your transaction ledger and cash flow views by any specific account (e.g., viewing only your primary Checking account or a specific Credit Card) and configure your profile to display in Indian Rupee (INR ₹), US Dollar (USD $), Euro (EUR €), British Pound (GBP £), and other major global currencies.',
+    },
+    {
+      id: 'workflows-receipts-categorization',
+      category: 'workflows',
+      categoryLabel: 'Features & Workflows',
+      q: 'How do split transactions, receipt attachments, and smart auto-categorization work?',
+      a: 'Any transaction can be split across multiple budget categories (e.g., splitting a supermarket run between Groceries and Household). You can also attach receipt images (PNG, JPG, WebP up to 15MB) and inspect them in the high-resolution Receipt Viewer Modal. As you type a merchant name, PRYORA automatically suggests the matching category based on pattern recognition.',
+    },
+    {
+      id: 'workflows-demo-sandbox',
+      category: 'workflows',
+      categoryLabel: 'Features & Workflows',
+      q: 'Can I explore PRYORA’s multi-account ledger before creating a personal account?',
+      a: 'Yes. Click "Explore Live Demo" anywhere on this page to launch an interactive sandbox pre-loaded with sample Checking, Savings, and Credit Card accounts, split transactions, envelope budgets, and recurring subscriptions.',
     },
   ];
+
+  const visibleFaqItems = faqItems.filter(
+    (item) => activeFaqCategory === 'all' || item.category === activeFaqCategory
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans antialiased transition-colors selection:bg-emerald-500 selection:text-slate-950">
@@ -194,6 +252,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             >
               {resolvedTheme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
             </button>
+
+            <div className="hidden sm:block">
+              <PWAInstallButton variant="header" />
+            </div>
 
             {user ? (
               <button
@@ -255,7 +317,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </p>
 
           {/* Primary Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4 mb-6">
             <button
               type="button"
               onClick={onLaunchApp}
@@ -274,6 +336,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <Zap className="w-4 h-4 text-emerald-500" />
               <span>{demoStarting ? 'Loading Sandbox...' : 'Explore Live Demo'}</span>
             </button>
+
+            <PWAInstallButton variant="hero" />
           </div>
 
           {/* Unboxed Trust Metadata */}
@@ -421,8 +485,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 pb-2">
                       <span className="font-bold text-slate-900 dark:text-white">TRANSACTION LOGGING</span>
                       <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        AI Auto-Suggest
+                        <Check className="w-3.5 h-3.5" />
+                        Keyword Matching
                       </span>
                     </div>
                     <div>
@@ -434,7 +498,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300">
                       <p className="font-bold flex items-center gap-1">
                         <Check className="w-3.5 h-3.5" />
-                        Suggested Category: Groceries (95% confidence)
+                        Matched Category: Groceries
                       </p>
                       <p className="text-[11px] text-emerald-600/90 dark:text-emerald-400/90 mt-1">
                         Matched supermarket merchant. Auto-selected in form.
@@ -454,7 +518,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       Faster Expense Entry with Less Friction
                     </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                      Type any merchant name and Priyora automatically predicts the correct category so you don't have to hunt through dropdown menus.
+                      Type any merchant name and Priyora automatically selects the matching category so you don't have to hunt through dropdown menus.
                     </p>
                     <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                       Attach photo receipts (JPG, PNG, WebP) directly to any record and inspect them anytime with the dedicated full-screen Receipt Viewer Modal.
@@ -682,6 +746,32 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               </p>
             </div>
 
+            {/* Bento Card 6 (Span 3): Excel & CSV Statement Import & Export */}
+            <div className="md:col-span-3 p-6 sm:p-8 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="max-w-2xl">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold mb-2">
+                  <Database className="w-4 h-4" />
+                  <span>Excel (.xlsx, .xls) & CSV Statement Import & Export</span>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                  Import multi-sheet Excel workbooks and bank statements with inline row editing.
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Upload any Excel (.xlsx, .xls) workbook or CSV bank statement. Switch worksheets on the fly, map custom columns or use fallback dates, edit any row inline, detect duplicates, and export your full ledger to CSV or JSON anytime.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <button
+                  type="button"
+                  onClick={onLaunchApp}
+                  className="bg-slate-900 dark:bg-emerald-500 text-white dark:text-slate-950 font-bold text-xs px-5 py-3 rounded-xl flex items-center gap-2 transition-all hover:opacity-90 cursor-pointer whitespace-nowrap shrink-0"
+                >
+                  <span>Import Excel / CSV in OS</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
           </div>
         </section>
 
@@ -871,43 +961,112 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </section>
 
         {/* ========================================================
-            ACCESSIBLE FAQ ACCORDION
+            ACCESSIBLE FAQ ACCORDION (Data Privacy & Multi-Account Tracking)
            ======================================================== */}
         <section id="faq" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
-          <div className="text-center mb-10">
+          <div className="text-center mb-8">
             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-2">
-              Clear Answers
+              Transparency & Architecture
             </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
               Frequently Asked Questions
             </h2>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-2.5 max-w-2xl mx-auto leading-relaxed">
+              Direct answers on how PRYORA protects your financial privacy, isolates your ledger data, and tracks balances across all your accounts.
+            </p>
           </div>
 
+          {/* Interactive Topic Filter Bar (Segmented Controls) */}
+          <div
+            role="tablist"
+            aria-label="Filter Frequently Asked Questions by topic"
+            className="flex flex-wrap items-center justify-center gap-2 mb-8 p-1.5 rounded-2xl bg-slate-200/60 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 w-fit mx-auto"
+          >
+            {[
+              { id: 'all', label: 'All Questions', count: faqItems.length },
+              {
+                id: 'privacy',
+                label: 'Data Privacy & Sovereignty',
+                count: faqItems.filter((i) => i.category === 'privacy').length,
+              },
+              {
+                id: 'multi-account',
+                label: 'Multi-Account Tracking',
+                count: faqItems.filter((i) => i.category === 'multi-account').length,
+              },
+              {
+                id: 'workflows',
+                label: 'Features & Workflows',
+                count: faqItems.filter((i) => i.category === 'workflows').length,
+              },
+            ].map((tab) => {
+              const isActive = activeFaqCategory === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => {
+                    const nextCategory = tab.id as 'all' | 'privacy' | 'multi-account' | 'workflows';
+                    setActiveFaqCategory(nextCategory);
+                    const firstMatching = faqItems.find(
+                      (item) => nextCategory === 'all' || item.category === nextCategory
+                    );
+                    if (firstMatching) {
+                      setExpandedFaq(firstMatching.id);
+                    }
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold tabular-nums">
+                    ({tab.count})
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Accordion List */}
           <div className="space-y-3">
-            {faqItems.map((item, idx) => {
-              const isExpanded = expandedFaq === idx;
+            {visibleFaqItems.map((item) => {
+              const isExpanded = expandedFaq === item.id;
               return (
                 <div
-                  key={idx}
-                  className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 overflow-hidden transition-colors"
+                  key={item.id}
+                  className={`rounded-2xl border transition-colors overflow-hidden ${
+                    isExpanded
+                      ? 'border-emerald-500/40 dark:border-emerald-500/40 bg-white dark:bg-slate-900 shadow-sm'
+                      : 'border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
                 >
                   <button
                     type="button"
-                    onClick={() => setExpandedFaq(isExpanded ? null : idx)}
-                    className="w-full px-6 py-4 text-left flex items-center justify-between gap-4 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    onClick={() => setExpandedFaq(isExpanded ? null : item.id)}
+                    className="w-full px-6 py-4 text-left flex items-start sm:items-center justify-between gap-4 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     aria-expanded={isExpanded}
                   >
-                    <span className="text-sm font-bold text-slate-900 dark:text-white">
-                      {item.q}
-                    </span>
+                    <div className="space-y-1 pr-2">
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                        {item.categoryLabel}
+                      </span>
+                      <span className="block text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                        {item.q}
+                      </span>
+                    </div>
                     <ChevronDown
-                      className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${
+                      className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 mt-1 sm:mt-0 ${
                         isExpanded ? 'rotate-180 text-emerald-500' : ''
                       }`}
                     />
                   </button>
                   {isExpanded && (
-                    <div className="px-6 pb-5 pt-1 text-xs text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-100 dark:border-slate-800/50">
+                    <div className="px-6 pb-5 pt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-100 dark:border-slate-800/60">
                       {item.a}
                     </div>
                   )}
@@ -975,6 +1134,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">Features</a>
             <a href="#privacy" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy</a>
             <a href="#goals-planner" className="hover:text-slate-900 dark:hover:text-white transition-colors">Goal Planner</a>
+            <a href="#faq" className="hover:text-slate-900 dark:hover:text-white transition-colors">FAQ</a>
             <button
               type="button"
               onClick={onLaunchApp}

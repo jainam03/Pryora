@@ -142,25 +142,61 @@ export function parseCsvString(csvText: string, delimiter?: string): ParsedCsv {
 export function guessColumnMapping(headers: string[]): CsvColumnMapping {
   const cleanHeaders = headers.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
-  const findHeader = (patterns: string[]): string => {
+  const findHeader = (exactPatterns: string[], partialPatterns: string[]): string => {
     for (let i = 0; i < headers.length; i++) {
       const h = cleanHeaders[i];
-      if (patterns.some(p => h.includes(p))) {
+      if (exactPatterns.includes(h)) {
+        return headers[i];
+      }
+    }
+    for (let i = 0; i < headers.length; i++) {
+      const h = cleanHeaders[i];
+      if (partialPatterns.some(p => h.includes(p))) {
         return headers[i];
       }
     }
     return '';
   };
 
-  const dateCol = findHeader(['date', 'time', 'timestamp', 'posted']);
-  const debitCol = findHeader(['debit', 'withdrawal', 'out', 'paidout']);
-  const creditCol = findHeader(['credit', 'deposit', 'in', 'received']);
-  const amountCol = (!debitCol || !creditCol) ? findHeader(['amount', 'sum', 'total', 'transactionamount']) : '';
-  const merchantCol = findHeader(['merchant', 'payee', 'description', 'details', 'name', 'particulars', 'narrative']) || headers[0] || '';
-  const categoryCol = findHeader(['category', 'tag', 'group', 'classification']);
-  const accountCol = findHeader(['account', 'bank', 'wallet', 'source']);
-  const notesCol = findHeader(['notes', 'remark', 'memo', 'comment']);
-  const typeCol = findHeader(['type', 'direction', 'crdr']);
+  const dateCol = findHeader(
+    ['date', 'transactiondate', 'txndate', 'valuedate', 'postingdate', 'posteddate'],
+    ['date', 'time', 'timestamp', 'posted']
+  );
+  const debitCol = findHeader(
+    ['debit', 'withdrawal', 'withdrawalamt', 'debitamount', 'paidout', 'dr', 'expense'],
+    ['debit', 'withdrawal', 'paidout', 'outflow']
+  );
+  const creditCol = findHeader(
+    ['credit', 'deposit', 'depositamt', 'creditamount', 'paidin', 'cr', 'income'],
+    ['credit', 'deposit', 'received', 'inflow']
+  );
+  const amountCol = (!debitCol || !creditCol)
+    ? findHeader(
+        ['amount', 'transactionamount', 'txnamount', 'value', 'total', 'cost', 'price', 'inr', 'usd'],
+        ['amount', 'sum', 'total', 'value', 'price', 'cost']
+      )
+    : '';
+  const merchantCol =
+    findHeader(
+      ['merchant', 'payee', 'description', 'narration', 'particulars', 'details', 'title', 'vendor', 'item', 'expense'],
+      ['merchant', 'payee', 'description', 'narration', 'particulars', 'details', 'name', 'narrative', 'vendor', 'item']
+    ) || headers.find(h => h !== dateCol && h !== amountCol) || headers[0] || '';
+  const categoryCol = findHeader(
+    ['category', 'expensecategory', 'type', 'group', 'department'],
+    ['category', 'tag', 'group', 'classification']
+  );
+  const accountCol = findHeader(
+    ['account', 'accountname', 'bank', 'wallet', 'paymentmethod', 'mode', 'paidvia'],
+    ['account', 'bank', 'wallet', 'source', 'paymentmethod', 'paidvia']
+  );
+  const notesCol = findHeader(
+    ['notes', 'note', 'remarks', 'remark', 'memo', 'comment', 'reference'],
+    ['notes', 'remark', 'memo', 'comment', 'reference']
+  );
+  const typeCol = findHeader(
+    ['type', 'transactiontype', 'txntype', 'crdr', 'drcr', 'direction'],
+    ['type', 'direction', 'crdr', 'drcr']
+  );
 
   return {
     dateCol,
@@ -168,7 +204,7 @@ export function guessColumnMapping(headers: string[]): CsvColumnMapping {
     debitCol,
     creditCol,
     merchantCol,
-    categoryCol,
+    categoryCol: categoryCol !== typeCol ? categoryCol : '',
     accountCol,
     typeCol,
     notesCol,
@@ -176,19 +212,66 @@ export function guessColumnMapping(headers: string[]): CsvColumnMapping {
   };
 }
 
+const MONTH_MAP: Record<string, number> = {
+  jan: 1, january: 1,
+  feb: 2, february: 2,
+  mar: 3, march: 3,
+  apr: 4, april: 4,
+  may: 5,
+  jun: 6, june: 6,
+  jul: 7, july: 7,
+  aug: 8, august: 8,
+  sep: 9, sept: 9, september: 9,
+  oct: 10, october: 10,
+  nov: 11, november: 11,
+  dec: 12, december: 12,
+};
+
 /**
- * Normalizes date strings into ISO format YYYY-MM-DD.
+ * Normalizes date strings (including Excel serial date numbers) into ISO format YYYY-MM-DD.
  */
-export function normalizeDate(dateStr: string, formatHint: string = 'auto'): string | null {
-  if (!dateStr || !dateStr.trim()) return null;
-  const clean = dateStr.trim();
+export function normalizeDate(dateStr: string | number, formatHint: string = 'auto'): string | null {
+  if (dateStr === null || dateStr === undefined) return null;
+  const clean = String(dateStr).trim();
+  if (!clean) return null;
 
-  // If already YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+  // 1. Check for Excel serial date number (e.g., 44927 -> 2023-01-01)
+  if (/^\d{5}(\.\d+)?$/.test(clean)) {
+    const serial = Math.floor( parseFloat(clean) );
+    if (serial >= 25569 && serial <= 73050) {
+      // Excel base date 1899-12-30 (accounts for 1900 leap year bug)
+      const utcDays = serial - 25569;
+      const dateObj = new Date(utcDays * 86400 * 1000);
+      if (!isNaN(dateObj.getTime())) {
+        return dateObj.toISOString().slice(0, 10);
+      }
+    }
+  }
 
-  // Split by slash, dash, dot
-  const parts = clean.split(/[-/.]/);
-  if (parts.length >= 3) {
+  // 2. If already YYYY-MM-DD (or YYYY-MM-DDTHH:mm:ss)
+  const isoMatch = clean.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  // 3. Remove trailing time component if present (e.g. "15/10/2026 14:30:00")
+  const datePartOnly = clean.split(/\s+/)[0];
+
+  // 4. Handle DD-MMM-YYYY or DD/MMM/YY (e.g. "15-Nov-2026", "04-Jan-26")
+  const alphaMonthMatch = clean.match(/^(\d{1,2})[-/\s.]([A-Za-z]{3,9})[-/\s.,]+(\d{2,4})$/);
+  if (alphaMonthMatch) {
+    const d = parseInt(alphaMonthMatch[1], 10);
+    const m = MONTH_MAP[alphaMonthMatch[2].toLowerCase()];
+    const rawY = parseInt(alphaMonthMatch[3], 10);
+    const y = rawY < 100 ? 2000 + rawY : rawY;
+    if (m && d >= 1 && d <= 31 && y >= 1970 && y <= 2100) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+  }
+
+  // 5. Numeric parts separated by slash, dash, or dot
+  const parts = datePartOnly.split(/[-/.]/);
+  if (parts.length >= 3 && parts.every(p => /^\d+$/.test(p))) {
     let y = parseInt(parts[0], 10);
     let m = parseInt(parts[1], 10);
     let d = parseInt(parts[2], 10);
@@ -200,7 +283,7 @@ export function normalizeDate(dateStr: string, formatHint: string = 'auto'): str
       d = parseInt(parts[2], 10);
     } else if (parts[2].length === 4 || parts[2].length === 2) {
       const yearPart = parts[2].length === 2 ? 2000 + parseInt(parts[2], 10) : parseInt(parts[2], 10);
-      if (formatHint === 'MM/DD/YYYY' || (parseInt(parts[0], 10) <= 12 && parseInt(parts[1], 10) > 12)) {
+      if (formatHint === 'MM/DD/YYYY' || (formatHint === 'auto' && parseInt(parts[0], 10) <= 12 && parseInt(parts[1], 10) > 12)) {
         // MM/DD/YYYY
         m = parseInt(parts[0], 10);
         d = parseInt(parts[1], 10);
@@ -220,7 +303,10 @@ export function normalizeDate(dateStr: string, formatHint: string = 'auto'): str
 
   const parsed = new Date(clean);
   if (!isNaN(parsed.getTime())) {
-    return parsed.toISOString().slice(0, 10);
+    const year = parsed.getFullYear();
+    if (year >= 1970 && year <= 2100) {
+      return parsed.toISOString().slice(0, 10);
+    }
   }
 
   return null;

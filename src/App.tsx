@@ -19,21 +19,67 @@ import { LandingPageView } from './components/LandingPageView';
 import { OnboardingModal } from './components/OnboardingModal';
 import { TransactionModal } from './components/TransactionModal';
 import { ReceiptViewerModal } from './components/ReceiptViewerModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { Account, Category, DashboardData, Transaction } from './types';
-import { apiRequest } from './lib/api';
+import { apiRequest, flushOfflineQueue } from './lib/api';
+import { safeGetItem, safeSetItem } from './lib/storage';
+import { isRunningStandalone } from './hooks/usePWAInstall';
 import { Loader2 } from 'lucide-react';
+
+const LAST_VIEW_KEY = 'pryora_last_view';
+const LAST_TAB_KEY = 'pryora_last_tab';
+const VALID_TABS: TabType[] = [
+  'dashboard',
+  'transactions',
+  'accounts',
+  'budgets',
+  'subscriptions',
+  'goals',
+  'analytics',
+  'data',
+];
 
 const MainApp: React.FC = () => {
   const { user, isLoading, refreshUser } = useAuth();
 
-  // Root view mode: defaults to 'landing' so every visit starts on the professional landing page
-  const [currentView, setCurrentView] = useState<'landing' | 'app' | 'auth'>('landing');
+  // Root view mode:
+  // - Standard browser visits start on 'landing'
+  // - Installed standalone PWA launches restore the user's last visited screen ('landing' or 'app')
+  const [currentView, setCurrentView] = useState<'landing' | 'app' | 'auth'>(() => {
+    if (isRunningStandalone()) {
+      const savedView = safeGetItem(LAST_VIEW_KEY);
+      if (savedView === 'app' || savedView === 'landing') {
+        return savedView;
+      }
+    }
+    return 'landing';
+  });
 
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  // Active OS module tab: always remembers the user's last visited tab
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const savedTab = safeGetItem(LAST_TAB_KEY) as TabType | null;
+    if (savedTab && VALID_TABS.includes(savedTab)) {
+      return savedTab;
+    }
+    return 'dashboard';
+  });
+
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingData, setLoadingData] = useState<boolean>(true);
+
+  // Persist last visited root view ('landing' or 'app')
+  useEffect(() => {
+    if (currentView === 'landing' || currentView === 'app') {
+      safeSetItem(LAST_VIEW_KEY, currentView);
+    }
+  }, [currentView]);
+
+  // Persist last visited OS tab
+  useEffect(() => {
+    safeSetItem(LAST_TAB_KEY, activeTab);
+  }, [activeTab]);
 
   // Transaction Modal State
   const [isTxModalOpen, setIsTxModalOpen] = useState<boolean>(false);
@@ -64,11 +110,29 @@ const MainApp: React.FC = () => {
     }
   }, [user]);
 
-  useEffect(() => {
+  const syncOfflineAndLoadData = useCallback(async () => {
+    await flushOfflineQueue();
     if (user && user.onboarding_completed) {
-      loadAllData();
+      await loadAllData();
     }
   }, [user, loadAllData]);
+
+  useEffect(() => {
+    if (user && user.onboarding_completed) {
+      syncOfflineAndLoadData();
+    }
+  }, [user, syncOfflineAndLoadData]);
+
+  // Automatically flush pending offline queue and re-sync ledger when network connectivity is restored
+  useEffect(() => {
+    const handleNetworkRestored = () => {
+      syncOfflineAndLoadData();
+    };
+    window.addEventListener('pryora:network-restored', handleNetworkRestored);
+    return () => {
+      window.removeEventListener('pryora:network-restored', handleNetworkRestored);
+    };
+  }, [syncOfflineAndLoadData]);
 
   // If user signs in while on auth screen, transition to app
   useEffect(() => {
@@ -94,16 +158,19 @@ const MainApp: React.FC = () => {
   // 1. Landing Page View (Primary entry point)
   if (currentView === 'landing') {
     return (
-      <LandingPageView
-        onLaunchApp={() => {
-          if (user) {
-            setCurrentView('app');
-          } else {
-            setCurrentView('auth');
-          }
-        }}
-        onOpenAuth={() => setCurrentView('auth')}
-      />
+      <>
+        <LandingPageView
+          onLaunchApp={() => {
+            if (user) {
+              setCurrentView('app');
+            } else {
+              setCurrentView('auth');
+            }
+          }}
+          onOpenAuth={() => setCurrentView('auth')}
+        />
+        <OfflineIndicator onRetrySync={syncOfflineAndLoadData} />
+      </>
     );
   }
 
@@ -114,9 +181,12 @@ const MainApp: React.FC = () => {
       setCurrentView('app');
     } else {
       return (
-        <AuthScreen
-          onBackToLanding={() => setCurrentView('landing')}
-        />
+        <>
+          <AuthScreen
+            onBackToLanding={() => setCurrentView('landing')}
+          />
+          <OfflineIndicator onRetrySync={syncOfflineAndLoadData} />
+        </>
       );
     }
   }
@@ -226,7 +296,12 @@ const MainApp: React.FC = () => {
         )}
 
         {activeTab === 'data' && (
-          <DataHubView accounts={accounts} onDataChanged={loadAllData} />
+          <DataHubView
+            accounts={accounts}
+            categories={categories}
+            onDataChanged={loadAllData}
+            onNavigateToLedger={() => setActiveTab('transactions')}
+          />
         )}
       </main>
 
@@ -247,6 +322,9 @@ const MainApp: React.FC = () => {
         merchantName={receiptMerchant}
         onClose={() => setReceiptTxId(null)}
       />
+
+      {/* Live Connectivity & Offline Mode Banner */}
+      <OfflineIndicator onRetrySync={syncOfflineAndLoadData} />
     </div>
   );
 };

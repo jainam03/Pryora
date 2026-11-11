@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#020617" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect x="40" y="40" width="432" height="432" rx="88" fill="none" stroke="#10b981" stroke-width="6" stroke-opacity="0.25" />
+  <rect x="96" y="96" width="320" height="320" rx="72" fill="url(#emeraldGrad)" />
+  <path
+    d="M192 164H268C305.5 164 332 187.5 332 224C332 260.5 305.5 284 268 284H234V348H192V164ZM234 248H264C280.5 248 290 239 290 224C290 209 280.5 200 264 200H234V248Z"
+    fill="#020617"
+  />
+</svg>
