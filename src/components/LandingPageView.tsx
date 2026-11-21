@@ -1,54 +1,206 @@
 /**
- * PRYORA Personal Finance OS — Official Landing Page
- * 
- * Strictly aligned with current application offerings:
- * - Net worth & cash flow overview
- * - Multi-account management (Checking, Savings, Credit Cards, Cash, Investments)
- * - Fast transaction logging with split amounts and custom tags
- * - Real-time instant search & filtering by merchant, category, and notes
- * - Smart AI Auto-Categorization based on merchant description
- * - Receipt image attachments with dedicated high-resolution viewer modal
- * - Envelope budgeting with category spending limits and threshold alerts
- * - Recurring subscriptions tracker with renewal dates & monthly costs
- * - Financial goals & milestone progress tracking
- * - 100% Data Sovereignty: 1-click CSV/JSON exports & CSV imports
- * - Local-first SQLite engine with secure Firebase cloud sync
- * - Interactive Goal Milestone Planner that reflects the in-app Goals module
+ * PRYORA — Public Early Access Landing Page
+ *
+ * Strategic Positioning:
+ * - Core proposition: "Understand your money. Understand your habits."
+ * - Target audience: Students, early-career professionals, and young independent earners in India
+ * - Strictly aligned with implemented capabilities and honest architectural & privacy claims
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { PWAInstallButton } from './PWAInstallButton';
 import {
   ArrowRight,
-  ShieldCheck,
-  Zap,
-  Lock,
   Search,
-  Receipt,
-  PieChart,
-  CalendarClock,
-  Target,
-  BarChart3,
-  Database,
-  TrendingUp,
-  CheckCircle2,
   ChevronDown,
   Sun,
   Moon,
-  Sparkles,
-  Layers,
-  ArrowRightLeft,
-  DollarSign,
-  Tag,
+  PlayCircle,
   Check,
+  FileSpreadsheet,
+  Receipt,
+  ShieldCheck,
+  TrendingUp,
 } from 'lucide-react';
 
 interface LandingPageViewProps {
   onLaunchApp: () => void;
   onOpenAuth: (initialMode?: 'signin' | 'signup') => void;
 }
+
+const formatInr = (amount: number): string => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+interface SampleTransaction {
+  id: string;
+  merchant: string;
+  category: string;
+  account: string;
+  amount: string;
+  isIncome?: boolean;
+  isTransfer?: boolean;
+  date: string;
+  note: string;
+  hasReceipt?: boolean;
+}
+
+const SAMPLE_TRANSACTIONS: SampleTransaction[] = [
+  {
+    id: 'tx-1',
+    merchant: 'Monthly Salary Credit',
+    category: 'Salary & Stipend',
+    account: 'HDFC Bank (UPI)',
+    amount: '+₹68,000',
+    isIncome: true,
+    date: '01 Oct',
+    note: 'Direct salary deposit',
+  },
+  {
+    id: 'tx-2',
+    merchant: 'Shared Flat Rent',
+    category: 'Housing & Rent',
+    account: 'HDFC Bank (UPI)',
+    amount: '-₹14,500',
+    date: '02 Oct',
+    note: 'Monthly house rent via UPI',
+  },
+  {
+    id: 'tx-3',
+    merchant: 'Zepto Daily Groceries',
+    category: 'Groceries & Supplies',
+    account: 'HDFC Bank (UPI)',
+    amount: '-₹840',
+    date: '04 Oct',
+    note: 'Fruits, milk, and pantry staples',
+    hasReceipt: true,
+  },
+  {
+    id: 'tx-4',
+    merchant: 'Swiggy Dinner Order',
+    category: 'Food & Dining',
+    account: 'ICICI Amazon Pay Card',
+    amount: '-₹485',
+    date: '05 Oct',
+    note: 'Weekday dinner delivery',
+    hasReceipt: true,
+  },
+  {
+    id: 'tx-5',
+    merchant: 'Namma Metro & Rapido',
+    category: 'Commute & Transit',
+    account: 'HDFC Bank (UPI)',
+    amount: '-₹310',
+    date: '06 Oct',
+    note: 'Office commute & card recharge',
+  },
+  {
+    id: 'tx-6',
+    merchant: 'Airtel Xstream Fiber',
+    category: 'Utilities & Bills',
+    account: 'HDFC Bank (UPI)',
+    amount: '-₹999',
+    date: '07 Oct',
+    note: 'Monthly home broadband',
+  },
+  {
+    id: 'tx-7',
+    merchant: 'Emergency Fund Transfer',
+    category: 'Internal Transfer',
+    account: 'HDFC Bank → SBI Savings',
+    amount: '₹10,000',
+    isTransfer: true,
+    date: '08 Oct',
+    note: 'Monthly goal allocation (excluded from expenses)',
+  },
+];
+
+interface FaqItem {
+  id: string;
+  category: 'getting-started' | 'privacy' | 'features';
+  categoryLabel: string;
+  q: string;
+  a: string;
+}
+
+const FAQ_ITEMS: FaqItem[] = [
+  {
+    id: 'what-is-pryora',
+    category: 'getting-started',
+    categoryLabel: 'Getting Started',
+    q: 'What is PRYORA?',
+    a: 'PRYORA is a personal finance platform built to help you track income and expenses, organise multiple accounts, manage monthly budgets and recurring bills, monitor savings goals, and understand the spending patterns behind your financial decisions.',
+  },
+  {
+    id: 'who-is-it-for',
+    category: 'getting-started',
+    categoryLabel: 'Getting Started',
+    q: 'Who is PRYORA designed for?',
+    a: 'PRYORA is built for students managing allowances or stipends, early-career professionals balancing salaries, rent, UPI spends, credit cards, and savings, and freelancers or young independent earners managing variable monthly income—especially in India.',
+  },
+  {
+    id: 'is-it-free',
+    category: 'getting-started',
+    categoryLabel: 'Getting Started',
+    q: 'Is PRYORA free to use during Public Early Access?',
+    a: 'Yes. All currently available features—including multi-account tracking, Excel and CSV statement imports, budgets, recurring bills, goals, analytics, and data exports—are free to use during Public Early Access.',
+  },
+  {
+    id: 'bank-connections',
+    category: 'privacy',
+    categoryLabel: 'Privacy & Data',
+    q: 'Do I need to connect my bank account, share net-banking passwords, or grant SMS access?',
+    a: 'No. PRYORA does not connect to third-party bank aggregators, does not ask for your banking passwords or UPI PINs, and does not read your SMS inbox. You stay in control by entering transactions directly or importing your own Excel or CSV statements.',
+  },
+  {
+    id: 'excel-csv-import',
+    category: 'features',
+    categoryLabel: 'Features',
+    q: 'How do I add expenses? Can I import Excel or CSV bank statements?',
+    a: 'You can add transactions manually in seconds—including split transactions and receipt photos—or upload Excel (.xlsx, .xls) workbooks and CSV bank statements using the step-by-step Import Wizard with sheet selection, column mapping, inline editing, and duplicate detection.',
+  },
+  {
+    id: 'data-storage-security',
+    category: 'privacy',
+    categoryLabel: 'Privacy & Data',
+    q: 'Where is my financial data stored and how is it isolated?',
+    a: 'Your records are stored in your isolated account inside the PRYORA application server database (SQLite), where every API request checks your session and account ownership so other users cannot view or modify your data. Browser local storage is used only for UI preferences and a user-scoped offline queue that is automatically cleared when you sign out.',
+  },
+  {
+    id: 'ai-scope',
+    category: 'features',
+    categoryLabel: 'Features',
+    q: 'Does PRYORA use AI, and what does it actually do?',
+    a: 'PRYORA is not an AI financial advisor and does not give automated investment advice. Its only smart assistance is optional merchant category suggestion when adding expenses—which runs primarily on built-in merchant keyword rules (covering common Indian and global merchants) with an optional Gemini model fallback only when enabled server-side.',
+  },
+  {
+    id: 'export-and-delete',
+    category: 'privacy',
+    categoryLabel: 'Privacy & Data',
+    q: 'Can I export my financial records or delete my account anytime?',
+    a: 'Yes. From the Data Hub inside PRYORA, you can export your transactions as CSV or Excel (.xlsx), download a full JSON backup of your workspace, or permanently delete your account and all associated financial records and receipts.',
+  },
+  {
+    id: 'mobile-offline',
+    category: 'features',
+    categoryLabel: 'Features',
+    q: 'Does PRYORA work on mobile phones and when I am briefly offline?',
+    a: 'Yes. PRYORA is responsive on mobile screens and can be installed as a Progressive Web App (PWA). If you lose connectivity briefly while signed in, supported entries queue locally for your account and sync back to the server once you reconnect.',
+  },
+  {
+    id: 'roadmap-habits',
+    category: 'getting-started',
+    categoryLabel: 'Getting Started',
+    q: 'What is PRYORA working towards beyond expense tracking?',
+    a: 'Today, PRYORA gives you a reliable ledger, budgets, recurring commitments, goals, and evidence-based spending insights derived from your numbers. As Early Access evolves, we are expanding deeper habit and pattern analysis to help you spot lifestyle drift and make calmer financial choices.',
+  },
+];
 
 export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onLaunchApp,
@@ -57,1016 +209,1200 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   const { user, loginDemo } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
 
-  // Hero Sandbox active tab
-  const [activeHeroTab, setActiveHeroTab] = useState<'overview' | 'categorization' | 'budget' | 'subscriptions'>('overview');
+  // Interactive 4-tab product preview
+  const [activePreviewTab, setActivePreviewTab] = useState<
+    'dashboard' | 'transactions' | 'budgets' | 'goals'
+  >('dashboard');
 
-  // Interactive Bento Demo: Live Search Filter
-  const [bentoSearchQuery, setBentoSearchQuery] = useState<string>('');
+  // Interactive live search demo inside Capability Bento
+  const [ledgerSearch, setLedgerSearch] = useState<string>('');
 
-  // Interactive Goal Planner State (Alters to match GoalsView in app)
-  const [goalTargetAmount, setGoalTargetAmount] = useState<number>(10000);
-  const [goalCurrentSaved, setGoalCurrentSaved] = useState<number>(2500);
-  const [goalMonthlySavings, setGoalMonthlySavings] = useState<number>(500);
+  // Interactive Goal Milestone Planner (Indian INR realistic defaults)
+  const [goalTarget, setGoalTarget] = useState<number>(30000);
+  const [goalSaved, setGoalSaved] = useState<number>(6000);
+  const [goalMonthly, setGoalMonthly] = useState<number>(4000);
 
-  // FAQ Accordion & Category Filter
-  const [activeFaqCategory, setActiveFaqCategory] = useState<'all' | 'privacy' | 'multi-account' | 'workflows'>('all');
-  const [expandedFaq, setExpandedFaq] = useState<string | null>('privacy-credentials');
+  // FAQ filtering & accordion
+  const [faqFilter, setFaqFilter] = useState<'all' | 'getting-started' | 'privacy' | 'features'>('all');
+  const [expandedFaq, setExpandedFaq] = useState<string | null>('what-is-pryora');
 
-  // Demo Starter state
-  const [demoStarting, setDemoStarting] = useState<boolean>(false);
-  const handleQuickDemo = async () => {
+  // Live Demo launcher state
+  const [demoLoading, setDemoLoading] = useState<boolean>(false);
+
+  const handleLaunchDemo = async () => {
     try {
-      setDemoStarting(true);
+      setDemoLoading(true);
       await loginDemo();
       onLaunchApp();
     } catch (err) {
-      console.error('Failed to start demo:', err);
-      onLaunchApp();
+      console.error('Failed to launch demo workspace:', err);
+      onOpenAuth('signin');
     } finally {
-      setDemoStarting(false);
+      setDemoLoading(false);
     }
   };
 
-  // Realistic sample transactions matching in-app schema
-  const sampleTransactions = [
-    { id: '1', merchant: 'Whole Foods Market', category: 'Groceries', amount: '-$142.80', date: 'Today', note: 'Weekly fresh groceries', hasReceipt: true },
-    { id: '2', merchant: 'Client Consulting Retainer', category: 'Income', amount: '+$3,200.00', date: 'Yesterday', note: 'Direct deposit into Checking', hasReceipt: false },
-    { id: '3', merchant: 'Figma Professional', category: 'Software', amount: '-$15.00', date: 'Oct 02', note: 'Monthly recurring subscription', hasReceipt: true },
-    { id: '4', merchant: 'Blue Bottle Cafe', category: 'Dining', amount: '-$6.50', date: 'Sep 30', note: 'Morning coffee', hasReceipt: true },
-    { id: '5', merchant: 'Vanguard Index Transfer', category: 'Transfer', amount: '$500.00', date: 'Sep 28', note: 'Checking to Investment savings', hasReceipt: false },
-  ];
+  const handlePrimaryStart = () => {
+    if (user) {
+      onLaunchApp();
+    } else {
+      onOpenAuth('signup');
+    }
+  };
 
-  const filteredDemoTransactions = sampleTransactions.filter(item => {
-    if (!bentoSearchQuery.trim()) return true;
-    const q = bentoSearchQuery.toLowerCase();
-    return (
-      item.merchant.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q) ||
-      item.note.toLowerCase().includes(q)
+  const filteredTransactions = useMemo(() => {
+    const q = ledgerSearch.trim().toLowerCase();
+    if (!q) return SAMPLE_TRANSACTIONS;
+    return SAMPLE_TRANSACTIONS.filter(
+      (tx) =>
+        tx.merchant.toLowerCase().includes(q) ||
+        tx.category.toLowerCase().includes(q) ||
+        tx.account.toLowerCase().includes(q) ||
+        tx.note.toLowerCase().includes(q)
     );
-  });
+  }, [ledgerSearch]);
 
-  // Calculate Goal Milestone Runway
-  const remainingNeeded = Math.max(0, goalTargetAmount - goalCurrentSaved);
-  const monthsToGoal = goalMonthlySavings > 0 ? Math.ceil(remainingNeeded / goalMonthlySavings) : 0;
-  const progressPercent = goalTargetAmount > 0 ? Math.min(100, Math.round((goalCurrentSaved / goalTargetAmount) * 100)) : 0;
+  // Ensure saved slider stays <= target
+  const effectiveSaved = Math.min(goalSaved, goalTarget);
+  const remainingNeeded = Math.max(0, goalTarget - effectiveSaved);
+  const monthsToGoal =
+    remainingNeeded === 0 ? 0 : goalMonthly > 0 ? Math.ceil(remainingNeeded / goalMonthly) : 0;
+  const progressPercent =
+    goalTarget > 0 ? Math.min(100, Math.round((effectiveSaved / goalTarget) * 100)) : 0;
 
-  const faqItems: Array<{
-    id: string;
-    category: 'privacy' | 'multi-account' | 'workflows';
-    categoryLabel: string;
-    q: string;
-    a: string;
-  }> = [
-    {
-      id: 'privacy-credentials',
-      category: 'privacy',
-      categoryLabel: 'Data Privacy',
-      q: 'Does PRYORA ever ask for my bank login credentials or connect to third-party aggregators?',
-      a: 'Never. PRYORA is intentionally designed without third-party bank screen-scrapers or credential harvesting. You never hand over your online banking passwords, PINs, or OAuth tokens. Instead, you log transactions directly or import bank statements via standard CSV files—giving you complete immunity from third-party aggregator data breaches.',
-    },
-    {
-      id: 'multi-account-types',
-      category: 'multi-account',
-      categoryLabel: 'Multi-Account Tracking',
-      q: 'What types of financial accounts can I track simultaneously in PRYORA?',
-      a: 'PRYORA supports 8 distinct account classifications out of the box: Checking, Savings, Credit Cards, Cash, Digital Wallets, Investments, Loans, and Other custom accounts. You can create unlimited accounts across these types and view both individual account ledgers and your consolidated Net Worth & Cash Flow in real time.',
-    },
-    {
-      id: 'privacy-storage-isolation',
-      category: 'privacy',
-      categoryLabel: 'Data Privacy',
-      q: 'Where is my financial data stored, and how is it isolated from other users?',
-      a: 'PRYORA uses a hybrid Local-First + Private Cloud architecture. It runs an in-memory SQLite engine (sql.js) for instant local queries and pairs with Google Firebase Firestore when you sign in. In Firestore, every document—accounts, transactions, budgets, goals, and subscriptions—is strictly isolated to your authenticated user UID and enforced by server-side security rules.',
-    },
-    {
-      id: 'multi-account-transfers',
-      category: 'multi-account',
-      categoryLabel: 'Multi-Account Tracking',
-      q: 'How does PRYORA handle transfers between my accounts and reconcile balances?',
-      a: 'Every account tracks its initial balance and real-time current balance using integer minor units (cents/paise) to eliminate floating-point rounding errors. When you log an expense, income, or an internal account-to-account transfer (for example, paying off a Credit Card from Checking or moving money into Savings), PRYORA automatically debits the source account and credits the destination account without artificially inflating your monthly spending analytics.',
-    },
-    {
-      id: 'multi-account-credit-cards',
-      category: 'multi-account',
-      categoryLabel: 'Multi-Account Tracking',
-      q: 'Does PRYORA offer specialized tracking for Credit Cards alongside bank accounts?',
-      a: 'Yes. When you add a Credit Card account in PRYORA, you can track its total Credit Limit, real-time Available Credit, Credit Utilization percentage, Statement Closing Day, Payment Due Day, and Minimum Payment amount—helping you keep utilization low and avoid late fees across multiple cards.',
-    },
-    {
-      id: 'privacy-export-delete',
-      category: 'privacy',
-      categoryLabel: 'Data Privacy',
-      q: 'Can I export my entire financial ledger or permanently delete my data?',
-      a: 'Yes, you have 100% data sovereignty with zero vendor lock-in. Inside the Data Hub, you can export your complete ledger (transactions, accounts, categories, and metadata) as standard CSV or raw JSON files with a single click. You can also import historical CSV records or permanently wipe and reset your account data at any time.',
-    },
-    {
-      id: 'privacy-monetization',
-      category: 'privacy',
-      categoryLabel: 'Data Privacy',
-      q: 'Are my transaction notes, merchants, or receipt photos shared with advertisers?',
-      a: 'No. PRYORA contains zero ad networks, zero third-party behavioral tracking pixels, and never sells or shares your financial records or uploaded receipt images with data brokers or marketing platforms.',
-    },
-    {
-      id: 'multi-account-currencies',
-      category: 'multi-account',
-      categoryLabel: 'Multi-Account Tracking',
-      q: 'Can I filter transactions by a single account or customize my primary currency?',
-      a: 'Yes. You can filter your transaction ledger and cash flow views by any specific account (e.g., viewing only your primary Checking account or a specific Credit Card) and configure your profile to display in Indian Rupee (INR ₹), US Dollar (USD $), Euro (EUR €), British Pound (GBP £), and other major global currencies.',
-    },
-    {
-      id: 'workflows-receipts-categorization',
-      category: 'workflows',
-      categoryLabel: 'Features & Workflows',
-      q: 'How do split transactions, receipt attachments, and smart auto-categorization work?',
-      a: 'Any transaction can be split across multiple budget categories (e.g., splitting a supermarket run between Groceries and Household). You can also attach receipt images (PNG, JPG, WebP up to 15MB) and inspect them in the high-resolution Receipt Viewer Modal. As you type a merchant name, PRYORA automatically suggests the matching category based on pattern recognition.',
-    },
-    {
-      id: 'workflows-demo-sandbox',
-      category: 'workflows',
-      categoryLabel: 'Features & Workflows',
-      q: 'Can I explore PRYORA’s multi-account ledger before creating a personal account?',
-      a: 'Yes. Click "Explore Live Demo" anywhere on this page to launch an interactive sandbox pre-loaded with sample Checking, Savings, and Credit Card accounts, split transactions, envelope budgets, and recurring subscriptions.',
-    },
-  ];
+  const estimatedCompletionLabel = useMemo(() => {
+    if (remainingNeeded === 0) return 'Target reached';
+    if (monthsToGoal <= 0) return 'Set a monthly amount';
+    const targetDate = new Date();
+    targetDate.setMonth(targetDate.getMonth() + monthsToGoal);
+    return targetDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  }, [remainingNeeded, monthsToGoal]);
 
-  const visibleFaqItems = faqItems.filter(
-    (item) => activeFaqCategory === 'all' || item.category === activeFaqCategory
+  const visibleFaqs = useMemo(
+    () => FAQ_ITEMS.filter((item) => faqFilter === 'all' || item.category === faqFilter),
+    [faqFilter]
   );
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans antialiased transition-colors selection:bg-emerald-500 selection:text-slate-950">
-      
-      {/* Background Ambient Glows */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0 opacity-40 dark:opacity-20" aria-hidden="true">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[750px] h-[350px] bg-gradient-to-tr from-emerald-500/25 via-teal-400/20 to-blue-500/15 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 -right-32 w-[500px] h-[300px] bg-gradient-to-br from-indigo-500/15 to-purple-500/15 rounded-full blur-3xl" />
-      </div>
-
       {/* ========================================================
-          1. TOP BAR CONTRACT (Strict 3-Zone Architecture)
+          TOP NAVIGATION — Strict 3-Zone Contract
          ======================================================== */}
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          
-          {/* Zone 1: Single text element wordmark */}
+      <header className="sticky top-0 z-50 bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 transition-colors">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
+          {/* Zone 1: Single-line Brand Wordmark */}
           <a
             href="#top"
-            className="flex items-center gap-2.5 text-left focus:outline-none group"
-            aria-label="Priyora Home"
+            className="flex items-center gap-2.5 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg"
+            aria-label="PRYORA Home"
           >
-            <div className="w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 font-black text-sm flex items-center justify-center tracking-tighter shadow-sm shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+            <span className="w-8 h-8 rounded-lg bg-emerald-500 text-slate-950 font-display font-extrabold text-sm flex items-center justify-center tracking-tight">
               P
-            </div>
-            <span className="font-extrabold text-base tracking-wider text-slate-900 dark:text-white">
+            </span>
+            <span className="font-display font-bold text-base tracking-tight text-slate-900 dark:text-white">
               PRYORA
             </span>
           </a>
 
-          {/* Zone 2: Clean Text Navigation Links */}
-          <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-600 dark:text-slate-300">
-            <a href="#features" className="hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
-              Features
+          {/* Zone 2: 4 Clean Single-Line Nav Links */}
+          <nav
+            aria-label="Primary"
+            className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600 dark:text-slate-300"
+          >
+            <a
+              href="#preview"
+              className="hover:text-slate-950 dark:hover:text-white hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            >
+              Product
             </a>
-            <a href="#preview" className="hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
-              Live Preview
+            <a
+              href="#features"
+              className="hover:text-slate-950 dark:hover:text-white hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            >
+              Capabilities
             </a>
-            <a href="#goals-planner" className="hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
-              Goal Planner
+            <a
+              href="#privacy"
+              className="hover:text-slate-950 dark:hover:text-white hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            >
+              Privacy
             </a>
-            <a href="#privacy" className="hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
-              Data Sovereignty
-            </a>
-            <a href="#faq" className="hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
+            <a
+              href="#faq"
+              className="hover:text-slate-950 dark:hover:text-white hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            >
               FAQ
             </a>
           </nav>
 
-          {/* Zone 3: Primary Actions & Theme Switcher */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Zone 3: Theme Toggle + Single Primary Action */}
+          <div className="flex items-center gap-3 shrink-0">
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              aria-label="Toggle visual theme"
+              className="w-10 h-10 inline-flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white rounded-lg hover:bg-slate-200/70 dark:hover:bg-slate-800/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {resolvedTheme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+              {resolvedTheme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4" />
+              )}
             </button>
 
-            <div className="hidden sm:block">
-              <PWAInstallButton variant="header" />
-            </div>
-
-            {user ? (
-              <button
-                type="button"
-                onClick={onLaunchApp}
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-sm shadow-emerald-500/20 active:scale-95 whitespace-nowrap"
-              >
-                <span>Launch OS</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onOpenAuth('signin')}
-                  className="hidden sm:inline-flex text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-emerald-500 dark:hover:text-emerald-400 px-3 py-2 transition-colors whitespace-nowrap"
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={onLaunchApp}
-                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-sm shadow-emerald-500/20 active:scale-95 whitespace-nowrap"
-                >
-                  <span>Open Priyora OS</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </>
-            )}
+            <button
+              type="button"
+              onClick={handlePrimaryStart}
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm px-4 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
+            >
+              <span>{user ? 'Open Dashboard' : 'Get Started'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main id="top" className="flex-1 relative z-10">
-        
+      <main id="top" className="flex-1">
         {/* ========================================================
-            HERO SECTION
-            Honest, concrete positioning of current features
+            SECTION 1 — HERO & INTERACTIVE PRODUCT PREVIEW
            ======================================================== */}
-        <section className="pt-14 pb-16 sm:pt-20 sm:pb-22 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          
-          {/* Subtle Editorial Kicker */}
-          <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-4 tracking-wide uppercase">
-            <span>Personal Finance OS</span>
-            <span aria-hidden="true">·</span>
-            <span>Accounts, Budgets & Goals</span>
-          </div>
+        <section className="pt-14 pb-16 sm:pt-20 sm:pb-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto text-center">
+            {/* Unboxed editorial metadata line (zero pills, zero decorative dots) */}
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-4">
+              Public Early Access · Personal finance built for India
+            </p>
 
-          {/* Master Headline */}
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white max-w-4xl mx-auto leading-[1.15] mb-6">
-            Track expenses, manage budgets, <br className="hidden sm:inline" />
-            and reach financial goals.
-          </h1>
-
-          {/* Value Proposition Subtitle */}
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Priyora unifies your bank accounts, cash flow, envelope budgets, recurring subscriptions, and receipt attachments in one fast, private interface.
-          </p>
-
-          {/* Primary Action Buttons */}
-          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4 mb-6">
-            <button
-              type="button"
-              onClick={onLaunchApp}
-              className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm px-6 py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/20 active:scale-95"
+            {/* Primary Headline */}
+            <h1
+              className="font-display font-bold tracking-tight text-slate-950 dark:text-white mb-6"
+              style={{
+                fontSize: 'clamp(2.25rem, 4.6vw, 3.75rem)',
+                lineHeight: 1.08,
+                textWrap: 'balance',
+              }}
             >
-              <span>{user ? 'Go to Dashboard' : 'Open Priyora OS'}</span>
-              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-            </button>
+              Understand your money. Understand your habits.
+            </h1>
 
-            <button
-              type="button"
-              onClick={handleQuickDemo}
-              disabled={demoStarting}
-              className="w-full sm:w-auto bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-semibold text-sm px-6 py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95"
-            >
-              <Zap className="w-4 h-4 text-emerald-500" />
-              <span>{demoStarting ? 'Loading Sandbox...' : 'Explore Live Demo'}</span>
-            </button>
+            {/* Value Proposition */}
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto mb-8">
+              Track your expenses, organise your finances and discover the spending patterns shaping
+              your financial life.
+            </p>
 
-            <PWAInstallButton variant="hero" />
+            {/* Focused Primary + Secondary CTAs */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-5">
+              <button
+                type="button"
+                onClick={handlePrimaryStart}
+                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm px-6 py-3 rounded-lg inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
+              >
+                <span>{user ? 'Go to Dashboard' : 'Start Managing Your Money'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLaunchDemo}
+                disabled={demoLoading}
+                className="w-full sm:w-auto bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 font-semibold text-sm px-6 py-3 rounded-lg inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60"
+              >
+                <PlayCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>{demoLoading ? 'Opening Demo...' : 'Explore Live Demo'}</span>
+              </button>
+
+              <PWAInstallButton variant="hero" />
+            </div>
+
+            {!user && (
+              <div className="mb-6">
+                <button
+                  type="button"
+                  onClick={() => onOpenAuth('signin')}
+                  className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white underline underline-offset-4 transition-colors"
+                >
+                  Already have an account? Sign in
+                </button>
+              </div>
+            )}
+
+            {/* Quiet Unboxed Grounding Line */}
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              <span>No bank passwords required</span>
+              <span aria-hidden="true">·</span>
+              <span>Excel & CSV statement import</span>
+              <span aria-hidden="true">·</span>
+              <span>INR & multi-currency support</span>
+              <span aria-hidden="true">·</span>
+              <span>Export or delete anytime</span>
+            </div>
           </div>
 
-          {/* Unboxed Trust Metadata */}
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-            <span>No bank logins required</span>
-            <span aria-hidden="true">·</span>
-            <span>Split transactions</span>
-            <span aria-hidden="true">·</span>
-            <span>Receipt attachments</span>
-            <span aria-hidden="true">·</span>
-            <span>1-click CSV/JSON export</span>
-          </div>
-        </section>
-
-        {/* ========================================================
-            INTERACTIVE LIVE PREVIEW
-            Showcases the actual app screens and workflow
-           ======================================================== */}
-        <section id="preview" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-xl overflow-hidden">
-            
-            {/* Window Chrome & Interactive Segmented Controls */}
-            <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-950/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5" aria-hidden="true">
-                  <div className="w-3 h-3 rounded-full bg-rose-400/80" />
-                  <div className="w-3 h-3 rounded-full bg-amber-400/80" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-400/80" />
-                </div>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 ml-2">
-                  Priyora OS Preview
-                </span>
+          {/* ========================================================
+              INTERACTIVE 4-TAB PRODUCT PREVIEW (Realistic INR Data)
+             ======================================================== */}
+          <div
+            id="preview"
+            className="mt-12 sm:mt-14 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden"
+          >
+            {/* Preview Toolbar */}
+            <div className="px-4 sm:px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Sample workspace · Early-career monthly view (INR)
               </div>
 
-              {/* Segmented Switcher */}
-              <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-800/60 p-1 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setActiveHeroTab('overview')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    activeHeroTab === 'overview'
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Dashboard
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveHeroTab('categorization')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    activeHeroTab === 'categorization'
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Smart Categorization
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveHeroTab('budget')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    activeHeroTab === 'budget'
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Envelope Budgets
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveHeroTab('subscriptions')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    activeHeroTab === 'subscriptions'
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Subscriptions
-                </button>
+              <div
+                role="tablist"
+                aria-label="PRYORA product preview views"
+                className="flex items-center gap-1 bg-slate-200/70 dark:bg-slate-800 p-1 rounded-lg overflow-x-auto no-scrollbar"
+              >
+                {(
+                  [
+                    { id: 'dashboard', label: 'Dashboard' },
+                    { id: 'transactions', label: 'Transactions' },
+                    { id: 'budgets', label: 'Budgets' },
+                    { id: 'goals', label: 'Goals & Bills' },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activePreviewTab === tab.id}
+                    onClick={() => setActivePreviewTab(tab.id)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
+                      activePreviewTab === tab.id
+                        ? 'bg-white dark:bg-slate-950 text-slate-950 dark:text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Live Interactive Tab Panels */}
-            <div className="p-6 sm:p-8">
-              
-              {/* Tab 1: Executive Dashboard */}
-              {activeHeroTab === 'overview' && (
+            {/* Preview Content */}
+            <div className="p-5 sm:p-8">
+              {activePreviewTab === 'dashboard' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60">
-                      <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Total Net Worth</span>
-                      <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">$148,250.00</span>
-                      <div className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  {/* Top Summary Metrics */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        Total Net Balance
+                      </p>
+                      <p className="text-2xl sm:text-3xl font-display font-bold text-slate-950 dark:text-white font-mono tabular-nums tracking-tight">
+                        ₹1,14,650
+                      </p>
+                      <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1.5 inline-flex items-center gap-1">
                         <TrendingUp className="w-3.5 h-3.5" />
-                        <span>+$4,120.00 this month</span>
-                      </div>
+                        <span>Across HDFC Bank, SBI Savings & Cash</span>
+                      </p>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60">
-                      <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Monthly Inflow</span>
-                      <span className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 tabular-nums">+$8,400.00</span>
-                      <span className="mt-2 text-xs text-slate-500 dark:text-slate-400 block">Salary & freelance income</span>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        Monthly Inflow
+                      </p>
+                      <p className="text-2xl sm:text-3xl font-display font-bold text-emerald-700 dark:text-emerald-400 font-mono tabular-nums tracking-tight">
+                        +₹68,000
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                        Salary & freelance credits
+                      </p>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60">
-                      <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Monthly Outflow</span>
-                      <span className="text-2xl font-bold tracking-tight text-rose-500 dark:text-rose-400 tabular-nums">-$4,280.00</span>
-                      <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                        <span>Savings Rate: <strong className="text-slate-900 dark:text-white tabular-nums">49.0%</strong></span>
-                      </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        Monthly Outflow
+                      </p>
+                      <p className="text-2xl sm:text-3xl font-display font-bold text-slate-950 dark:text-white font-mono tabular-nums tracking-tight">
+                        ₹36,420
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                        Savings rate:{' '}
+                        <span className="font-mono font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
+                          46.4%
+                        </span>{' '}
+                        this month
+                      </p>
                     </div>
                   </div>
 
-                  {/* Micro Table */}
-                  <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 overflow-hidden">
-                    <div className="px-4 py-2.5 bg-slate-100/50 dark:bg-slate-800/50 text-xs font-semibold text-slate-600 dark:text-slate-300 flex justify-between">
-                      <span>Recent Activity</span>
-                      <span className="text-emerald-500 font-medium">Reconciled across accounts</span>
-                    </div>
-                    <div className="divide-y divide-slate-200/60 dark:divide-slate-800/60 text-xs">
-                      <div className="px-4 py-3 flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-900 dark:text-white">Client Consulting Retainer</p>
-                          <p className="text-slate-500 dark:text-slate-400">Business Checking · Oct 04</p>
+                  {/* Habit Observation + Recent Activity Split */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-5 space-y-3">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                        Spending patterns noticed
+                      </h3>
+                      <div className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                        <div className="py-3 first:pt-0">
+                          <p className="font-medium text-slate-900 dark:text-slate-100">
+                            Food delivery & dining is 24% of variable spend
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            ₹5,400 spent across 11 orders so far — ₹1,600 left in your monthly cap.
+                          </p>
                         </div>
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">+$3,200.00</span>
+                        <div className="py-3">
+                          <p className="font-medium text-slate-900 dark:text-slate-100">
+                            Fixed rent & utilities stay predictable
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            ₹16,499 committed to rent, electricity, and broadband (24.3% of income).
+                          </p>
+                        </div>
+                        <div className="py-3 last:pb-0">
+                          <p className="font-medium text-slate-900 dark:text-slate-100">
+                            Savings transfers excluded from expenses
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            ₹10,000 moved to SBI Savings keeps your true cash flow accurate.
+                          </p>
+                        </div>
                       </div>
-                      <div className="px-4 py-3 flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-900 dark:text-white">Whole Foods Market</p>
-                          <p className="text-slate-500 dark:text-slate-400">Credit Card · Receipt Attached</p>
-                        </div>
-                        <span className="font-bold text-slate-900 dark:text-white tabular-nums">-$142.80</span>
+                    </div>
+
+                    <div className="lg:col-span-7">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                          Recent ledger entries
+                        </h3>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          Reconciled balances
+                        </span>
+                      </div>
+                      <div className="divide-y divide-slate-200 dark:divide-slate-800 border-t border-b border-slate-200 dark:border-slate-800">
+                        {SAMPLE_TRANSACTIONS.slice(0, 4).map((tx) => (
+                          <div
+                            key={tx.id}
+                            className="py-3 flex items-center justify-between gap-4 text-sm"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium text-slate-900 dark:text-white truncate">
+                                {tx.merchant}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                {tx.category} · {tx.account} · {tx.date}
+                              </p>
+                            </div>
+                            <span
+                              className={`font-mono text-sm font-semibold tabular-nums whitespace-nowrap shrink-0 ${
+                                tx.isIncome
+                                  ? 'text-emerald-700 dark:text-emerald-400'
+                                  : 'text-slate-900 dark:text-slate-100'
+                              }`}
+                            >
+                              {tx.amount}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Tab 2: Smart Auto-Categorization & Receipt Viewer */}
-              {activeHeroTab === 'categorization' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                  <div className="p-5 rounded-xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800/70 text-xs space-y-3">
-                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 pb-2">
-                      <span className="font-bold text-slate-900 dark:text-white">TRANSACTION LOGGING</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" />
-                        Keyword Matching
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">Merchant Entered:</span>
-                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium">
-                        Whole Foods Market
+              {activePreviewTab === 'transactions' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                  <div className="space-y-4">
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                      Fast entry, split categories, and bank statement import
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                      Log a UPI payment, card spend, or cash expense in seconds. Built-in keyword
+                      rules recognise common Indian merchants—like Swiggy, Zepto, Metro, Airtel, or
+                      BESCOM—and suggest the right category automatically, with optional server-side
+                      Gemini fallback when enabled.
+                    </p>
+                    <div className="divide-y divide-slate-200 dark:divide-slate-800 border-t border-slate-200 dark:border-slate-800 pt-2 text-sm">
+                      <div className="py-2.5 flex items-center justify-between">
+                        <span className="text-slate-600 dark:text-slate-300">
+                          Excel & CSV statement wizard
+                        </span>
+                        <span className="text-xs font-medium text-slate-900 dark:text-slate-100">
+                          .xlsx, .xls, .csv + sheet picker
+                        </span>
+                      </div>
+                      <div className="py-2.5 flex items-center justify-between">
+                        <span className="text-slate-600 dark:text-slate-300">
+                          Split transactions
+                        </span>
+                        <span className="text-xs font-medium text-slate-900 dark:text-slate-100">
+                          Exact paise-level allocation
+                        </span>
+                      </div>
+                      <div className="py-2.5 flex items-center justify-between">
+                        <span className="text-slate-600 dark:text-slate-300">
+                          Receipt attachments
+                        </span>
+                        <span className="text-xs font-medium text-slate-900 dark:text-slate-100">
+                          JPG, PNG, WebP up to 10MB
+                        </span>
                       </div>
                     </div>
-                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300">
-                      <p className="font-bold flex items-center gap-1">
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 text-sm">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        New expense preview
+                      </span>
+                      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1">
                         <Check className="w-3.5 h-3.5" />
-                        Matched Category: Groceries
-                      </p>
-                      <p className="text-[11px] text-emerald-600/90 dark:text-emerald-400/90 mt-1">
-                        Matched supermarket merchant. Auto-selected in form.
+                        Category suggested
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
+                          Merchant or narration
+                        </span>
+                        <div className="px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-medium text-slate-900 dark:text-white">
+                          UPI / ZEPTO MARKETPLACE
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
+                            Suggested category
+                          </span>
+                          <div className="px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/70 font-medium text-emerald-800 dark:text-emerald-300">
+                            Groceries & Supplies
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
+                            Amount
+                          </span>
+                          <div className="px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono font-semibold tabular-nums text-slate-900 dark:text-white">
+                            ₹840.00
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Receipt className="w-3.5 h-3.5" />
+                          zepto_bill_oct04.jpg attached
+                        </span>
+                        <span>HDFC Bank (UPI)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activePreviewTab === 'budgets' && (
+                <div className="space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-200 dark:border-slate-800">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                        Monthly spending pacing
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Planned caps compared against actual spending, including split items
                       </p>
                     </div>
-                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-slate-500">
-                      <span>Receipt Attachment:</span>
-                      <span className="text-slate-900 dark:text-white font-medium flex items-center gap-1">
-                        <Receipt className="w-3.5 h-3.5 text-emerald-500" />
-                        receipt_oct_04.jpg (Preview modal ready)
-                      </span>
+                    <div className="text-sm font-mono tabular-nums font-semibold text-slate-900 dark:text-white">
+                      ₹12,898 / ₹18,000 planned
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      Faster Expense Entry with Less Friction
+                    {[
+                      {
+                        name: 'Food & Dining',
+                        spent: 5400,
+                        limit: 7000,
+                        pct: 77,
+                        status: 'Nearing limit · ₹1,600 left',
+                        barClass: 'bg-amber-500',
+                      },
+                      {
+                        name: 'Groceries & Supplies',
+                        spent: 4250,
+                        limit: 6000,
+                        pct: 71,
+                        status: 'On pace · ₹1,750 left',
+                        barClass: 'bg-emerald-500',
+                      },
+                      {
+                        name: 'Commute & Transit',
+                        spent: 2100,
+                        limit: 3500,
+                        pct: 60,
+                        status: 'Within pace · ₹1,400 left',
+                        barClass: 'bg-emerald-500',
+                      },
+                      {
+                        name: 'Subscriptions & OTT',
+                        spent: 1148,
+                        limit: 1500,
+                        pct: 77,
+                        status: 'Scheduled renewals tracked · ₹352 left',
+                        barClass: 'bg-emerald-500',
+                      },
+                    ].map((b) => (
+                      <div key={b.name} className="space-y-1.5">
+                        <div className="flex items-baseline justify-between gap-2 text-sm">
+                          <span className="font-medium text-slate-900 dark:text-white">
+                            {b.name}
+                          </span>
+                          <span className="font-mono text-xs sm:text-sm tabular-nums text-slate-600 dark:text-slate-300">
+                            {formatInr(b.spent)} / {formatInr(b.limit)} ({b.pct}%)
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${b.barClass}`}
+                            style={{ width: `${b.pct}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{b.status}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activePreviewTab === 'goals' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                      Upcoming recurring commitments
                     </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                      Type any merchant name and Priyora automatically selects the matching category so you don't have to hunt through dropdown menus.
-                    </p>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                      Attach photo receipts (JPG, PNG, WebP) directly to any record and inspect them anytime with the dedicated full-screen Receipt Viewer Modal.
-                    </p>
+                    <div className="divide-y divide-slate-200 dark:divide-slate-800 border-t border-b border-slate-200 dark:border-slate-800 text-sm">
+                      {[
+                        { name: 'Shared Flat Rent', due: '1st of every month', amount: '₹14,500' },
+                        { name: 'Airtel Xstream Fiber', due: 'Monthly · Due in 6 days', amount: '₹999' },
+                        { name: 'BESCOM Electricity', due: 'Monthly · Variable estimate', amount: '₹1,050' },
+                        { name: 'Spotify & OTT Bundle', due: 'Monthly · Auto-reminder', amount: '₹449' },
+                      ].map((item) => (
+                        <div key={item.name} className="py-3 flex items-center justify-between gap-4">
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-white">{item.name}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{item.due}</p>
+                          </div>
+                          <span className="font-mono font-semibold tabular-nums text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                            {item.amount}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                      Active savings goals
+                    </h3>
+                    <div className="space-y-5">
+                      {[
+                        {
+                          title: 'Emergency Fund (3 months)',
+                          saved: 65000,
+                          target: 150000,
+                          pct: 43,
+                          note: '₹10,000/month contribution pace',
+                        },
+                        {
+                          title: 'Laptop Upgrade',
+                          saved: 28000,
+                          target: 75000,
+                          pct: 37,
+                          note: 'On track for next year',
+                        },
+                        {
+                          title: 'Year-End Travel Fund',
+                          saved: 16500,
+                          target: 25000,
+                          pct: 66,
+                          note: '₹8,500 remaining',
+                        },
+                      ].map((g) => (
+                        <div key={g.title} className="space-y-1.5">
+                          <div className="flex items-baseline justify-between gap-2 text-sm">
+                            <span className="font-medium text-slate-900 dark:text-white">
+                              {g.title}
+                            </span>
+                            <span className="font-mono text-xs tabular-nums text-slate-600 dark:text-slate-300">
+                              {formatInr(g.saved)} / {formatInr(g.target)}
+                            </span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 rounded-full"
+                              style={{ width: `${g.pct}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {g.pct}% funded · {g.note}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
-
-              {/* Tab 3: Envelope Budgets */}
-              {activeHeroTab === 'budget' && (
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold mb-1.5">
-                      <span>Dining & Cafes</span>
-                      <span className="text-slate-500 tabular-nums">$380 spent / $500 cap (76%)</span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-amber-500 rounded-full" style={{ width: '76%' }} />
-                    </div>
-                    <span className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 block">$120 remaining this month</span>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold mb-1.5">
-                      <span>Housing & Utilities</span>
-                      <span className="text-slate-500 tabular-nums">$1,850 spent / $1,900 cap (97%)</span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: '97%' }} />
-                    </div>
-                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 block">$50 remaining this month</span>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold mb-1.5">
-                      <span>Software Subscriptions</span>
-                      <span className="text-slate-500 tabular-nums">$65 spent / $120 cap (54%)</span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: '54%' }} />
-                    </div>
-                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 block">$55 remaining this month</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 4: Subscriptions */}
-              {activeHeroTab === 'subscriptions' && (
-                <div className="space-y-3">
-                  <div className="p-3 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold">
-                        F
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">Figma Professional</p>
-                        <p className="text-slate-500 dark:text-slate-400">Renews in 5 days · Monthly</p>
-                      </div>
-                    </div>
-                    <span className="font-bold tabular-nums">$15.00 / mo</span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
-                        S
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">Spotify Family Plan</p>
-                        <p className="text-slate-500 dark:text-slate-400">Renews Oct 18 · Monthly</p>
-                      </div>
-                    </div>
-                    <span className="font-bold tabular-nums">$19.99 / mo</span>
-                  </div>
-                </div>
-              )}
-
             </div>
           </div>
         </section>
 
         {/* ========================================================
-            FEATURES BENTO GRID
-            True to what Priyora offers right now
+            SECTION 2 — BUILT FOR EVERYDAY FINANCIAL LIVES IN INDIA
            ======================================================== */}
-        <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
-          
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-2">
-              Current Capabilities
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
-              A comprehensive toolkit for personal finance.
+        <section className="py-16 sm:py-20 border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/40">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mb-12">
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-2">
+                Who PRYORA is built for
+              </p>
+              <h2
+                className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-950 dark:text-white"
+                style={{ textWrap: 'balance' }}
+              >
+                Approachable clarity, whether it is your first stipend or your fifth salary.
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
+              <div className="pt-5 border-t border-slate-200 dark:border-slate-800">
+                <p className="font-mono text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">
+                  01.
+                </p>
+                <h3 className="text-lg font-semibold text-slate-950 dark:text-white mb-2">
+                  Students & young adults
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Keep track of monthly allowances, internship stipends, PG or hostel bills, and
+                  frequent small UPI spends without wading through complex accounting terms.
+                </p>
+              </div>
+
+              <div className="pt-5 border-t border-slate-200 dark:border-slate-800">
+                <p className="font-mono text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">
+                  02.
+                </p>
+                <h3 className="text-lg font-semibold text-slate-950 dark:text-white mb-2">
+                  Early-career professionals
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  See how salary splits across rent, food delivery, credit card bills, OTT
+                  subscriptions, and monthly savings—so lifestyle creep never catches you off guard.
+                </p>
+              </div>
+
+              <div className="pt-5 border-t border-slate-200 dark:border-slate-800">
+                <p className="font-mono text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">
+                  03.
+                </p>
+                <h3 className="text-lg font-semibold text-slate-950 dark:text-white mb-2">
+                  Freelancers & independent earners
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Track variable client payments alongside fixed personal expenses, separate
+                  accounts cleanly, and import bank or Excel statements whenever you reconcile.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================
+            SECTION 3 — ASYMMETRIC CAPABILITIES BENTO
+           ======================================================== */}
+        <section
+          id="features"
+          className="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"
+        >
+          <div className="max-w-2xl mb-12">
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-2">
+              Implemented capabilities
+            </p>
+            <h2
+              className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-slate-950 dark:text-white mb-3"
+              style={{ textWrap: 'balance' }}
+            >
+              Everything connected in one ledger, from daily UPI spends to savings goals.
             </h2>
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+              Every feature listed below is live in PRYORA today—no placeholder modules or coming-soon
+              tabs.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Bento Card 1 (Span 2): Live Search & Split Filter */}
-            <div className="md:col-span-2 p-6 sm:p-8 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between">
+            {/* Card 1 (Span 2): Interactive Ledger Search */}
+            <div className="md:col-span-2 p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold mb-3">
-                  <Search className="w-4 h-4" />
-                  <span>Instant Transaction Search & Filtering</span>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                  Find any entry instantly by merchant, note, or category.
+                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-2">
+                  01. Expense & Income Ledger
+                </p>
+                <h3 className="text-xl font-bold text-slate-950 dark:text-white mb-2">
+                  Search any spend by merchant, category, account, or note.
                 </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
-                  Test the live search filter right now. Type "Coffee", "Figma", "Retainer", or "Groceries":
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">
+                  Try filtering sample entries right here—type <span className="font-medium text-slate-900 dark:text-slate-100">Swiggy</span>,{' '}
+                  <span className="font-medium text-slate-900 dark:text-slate-100">Zepto</span>,{' '}
+                  <span className="font-medium text-slate-900 dark:text-slate-100">Rent</span>, or{' '}
+                  <span className="font-medium text-slate-900 dark:text-slate-100">UPI</span>.
                 </p>
 
-                {/* Interactive Filter Input */}
                 <div className="relative mb-4">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
-                    value={bentoSearchQuery}
-                    onChange={(e) => setBentoSearchQuery(e.target.value)}
-                    placeholder="Type to filter transactions..."
-                    className="w-full pl-9 pr-4 py-2.5 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl text-xs border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+                    value={ledgerSearch}
+                    onChange={(e) => setLedgerSearch(e.target.value)}
+                    placeholder="Filter sample ledger entries..."
+                    aria-label="Filter sample ledger entries"
+                    className="w-full pl-10 pr-16 py-2.5 bg-slate-50 dark:bg-slate-950 rounded-lg text-sm border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white placeholder:text-slate-400"
                   />
-                  {bentoSearchQuery && (
+                  {ledgerSearch && (
                     <button
                       type="button"
-                      onClick={() => setBentoSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                      onClick={() => setLedgerSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white"
                     >
                       Clear
                     </button>
                   )}
                 </div>
 
-                {/* Filter Results in Live Demo */}
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {filteredDemoTransactions.length > 0 ? (
-                    filteredDemoTransactions.map(tx => (
+                <div className="divide-y divide-slate-200 dark:divide-slate-800 border-t border-b border-slate-200 dark:border-slate-800 max-h-52 overflow-y-auto">
+                  {filteredTransactions.length > 0 ? (
+                    filteredTransactions.map((tx) => (
                       <div
                         key={tx.id}
-                        className="px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/50 flex items-center justify-between text-xs"
+                        className="py-2.5 flex items-center justify-between gap-4 text-sm"
                       >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-slate-900 dark:text-white">{tx.merchant}</p>
-                            {tx.hasReceipt && (
-                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-medium">
-                                Receipt
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">{tx.category} · {tx.note}</p>
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-900 dark:text-white truncate">
+                            {tx.merchant}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                            {tx.category} · {tx.account}
+                            {tx.hasReceipt ? ' · Receipt attached' : ''}
+                          </p>
                         </div>
-                        <span className={`font-bold tabular-nums ${tx.amount.startsWith('+') ? 'text-emerald-500' : 'text-slate-900 dark:text-white'}`}>
+                        <span
+                          className={`font-mono text-sm font-semibold tabular-nums whitespace-nowrap shrink-0 ${
+                            tx.isIncome
+                              ? 'text-emerald-700 dark:text-emerald-400'
+                              : tx.isTransfer
+                                ? 'text-slate-500 dark:text-slate-400'
+                                : 'text-slate-900 dark:text-slate-100'
+                          }`}
+                        >
                           {tx.amount}
                         </span>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-4 text-xs text-slate-400">
-                      No matching records for "{bentoSearchQuery}".
+                    <div className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                      No sample entries match "{ledgerSearch}".
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Bento Card 2: Receipt Attachments & Viewer */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between">
+            {/* Card 2: Spending Behaviour & Analytics */}
+            <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold mb-3">
-                  <Receipt className="w-4 h-4" />
-                  <span>Receipt Attachments & Viewer</span>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                  Visual proof stored alongside transactions.
+                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-2">
+                  02. Spending Insights
+                </p>
+                <h3 className="text-xl font-bold text-slate-950 dark:text-white mb-2">
+                  See where money actually goes each month.
                 </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
-                  Attach physical or digital receipts directly to any expense. Review receipts in full resolution using the dedicated Receipt Viewer Modal.
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Review category shares, month-over-month cash flow trends, savings rate, and
+                  evidence-based observations calculated directly from your recorded transactions.
                 </p>
               </div>
-              <div className="pt-4 border-t border-slate-200/60 dark:border-slate-800/60 text-xs text-slate-500 dark:text-slate-400">
-                Supports JPG, PNG, and WebP images up to 15MB.
-              </div>
-            </div>
-
-            {/* Bento Card 3: Multi-Account Management */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80">
-              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold mb-3">
-                <Layers className="w-4 h-4" />
-                <span>Multi-Account Ledger</span>
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                Checking, Savings & Credit Cards
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Track balances across bank accounts, cash wallets, credit cards with statement cycles, and investment portfolios with simple account transfers.
+              <p className="pt-5 mt-6 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+                Transfers and card bill payments stay excluded from expense totals.
               </p>
             </div>
 
-            {/* Bento Card 4: Envelope Budgets */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80">
-              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold mb-3">
-                <PieChart className="w-4 h-4" />
-                <span>Envelope Budgets</span>
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                Spending Caps with Warnings
+            {/* Card 3: Multi-Account Organiser */}
+            <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-2">
+                03. Multiple Accounts
+              </p>
+              <h3 className="text-xl font-bold text-slate-950 dark:text-white mb-2">
+                Bank, UPI, Cash & Credit Cards
               </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Set monthly caps for specific categories. Visual progress gauges alert you when you near or exceed your target budget.
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Track balances across savings accounts, checking/UPI accounts, wallets, investments,
+                loans, and credit cards with limit utilization and statement due dates.
               </p>
             </div>
 
-            {/* Bento Card 5: Subscriptions & Recurring Bills */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80">
-              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold mb-3">
-                <CalendarClock className="w-4 h-4" />
-                <span>Subscription Radar</span>
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                Audit Recurring Expenses
+            {/* Card 4: Monthly Budgets */}
+            <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-2">
+                04. Monthly Budgets
+              </p>
+              <h3 className="text-xl font-bold text-slate-950 dark:text-white mb-2">
+                Pacing before the month ends
               </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Keep an inventory of all active recurring memberships, billing frequencies (monthly, quarterly, annual), and renewal dates.
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Set practical category caps and monitor pace through the month. Split transactions
+                allocate accurately across categories without double-counting.
               </p>
             </div>
 
-            {/* Bento Card 6 (Span 3): Excel & CSV Statement Import & Export */}
-            <div className="md:col-span-3 p-6 sm:p-8 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            {/* Card 5: Savings Goals & Recurring Bills */}
+            <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-2">
+                05. Goals & Subscriptions
+              </p>
+              <h3 className="text-xl font-bold text-slate-950 dark:text-white mb-2">
+                Commitments & milestones
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Log recurring rent, broadband, and OTT subscriptions with renewal reminders, while
+                tracking contribution progress toward emergency funds or big purchases.
+              </p>
+            </div>
+
+            {/* Card 6 (Span 3): Excel/CSV Statement Importer & Receipts */}
+            <div className="md:col-span-3 p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               <div className="max-w-2xl">
-                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold mb-2">
-                  <Database className="w-4 h-4" />
-                  <span>Excel (.xlsx, .xls) & CSV Statement Import & Export</span>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                  Import multi-sheet Excel workbooks and bank statements with inline row editing.
+                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-2 inline-flex items-center gap-1.5">
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>06. Statement Import & Receipts</span>
+                </p>
+                <h3 className="text-xl font-bold text-slate-950 dark:text-white mb-2">
+                  Bring in existing Excel or CSV statements in minutes.
                 </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Upload any Excel (.xlsx, .xls) workbook or CSV bank statement. Switch worksheets on the fly, map custom columns or use fallback dates, edit any row inline, detect duplicates, and export your full ledger to CSV or JSON anytime.
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Upload multi-sheet Excel (.xlsx, .xls) workbooks or CSV bank statements, map your
+                  columns side-by-side, fix or edit rows inline, skip duplicates automatically, and
+                  attach receipt images (JPG, PNG, WebP up to 10MB) to any transaction.
                 </p>
               </div>
               <div className="shrink-0">
                 <button
                   type="button"
-                  onClick={onLaunchApp}
-                  className="bg-slate-900 dark:bg-emerald-500 text-white dark:text-slate-950 font-bold text-xs px-5 py-3 rounded-xl flex items-center gap-2 transition-all hover:opacity-90 cursor-pointer whitespace-nowrap shrink-0"
+                  onClick={handlePrimaryStart}
+                  className="bg-slate-900 dark:bg-emerald-500 hover:bg-slate-800 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-semibold text-sm px-5 py-3 rounded-lg inline-flex items-center gap-2 transition-colors whitespace-nowrap"
                 >
-                  <span>Import Excel / CSV in OS</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Try Statement Import</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
-
           </div>
         </section>
 
         {/* ========================================================
-            GOAL MILESTONE PLANNER
-            Directly mirrors the in-app GoalsView module
+            SECTION 4 — INTERACTIVE GOAL MILESTONE PLANNER (INR)
            ======================================================== */}
-        <section id="goals-planner" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
-          <div className="p-8 sm:p-10 rounded-3xl bg-slate-900 text-white shadow-2xl relative overflow-hidden border border-slate-800">
-            
-            <div className="relative z-10">
-              <div className="max-w-2xl mb-8">
-                <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider block mb-2">
-                  In-App Feature Preview
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                  Simulate your savings goals & milestones.
-                </h2>
-                <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                  Priyora includes a dedicated <strong>Goals & Milestones</strong> tracker. Test how long it will take to fund your emergency fund, vacation, or down payment:
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                
-                {/* Inputs Column */}
-                <div className="lg:col-span-7 space-y-6">
-                  
-                  {/* Target Amount */}
-                  <div>
-                    <div className="flex justify-between text-xs font-medium text-slate-300 mb-2">
-                      <span>Target Goal Amount</span>
-                      <span className="text-emerald-400 font-bold tabular-nums">${goalTargetAmount.toLocaleString()}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={1000}
-                      max={100000}
-                      step={1000}
-                      value={goalTargetAmount}
-                      onChange={(e) => setGoalTargetAmount(Number(e.target.value))}
-                      className="w-full accent-emerald-500 cursor-pointer"
-                    />
-                  </div>
-
-                  {/* Current Saved */}
-                  <div>
-                    <div className="flex justify-between text-xs font-medium text-slate-300 mb-2">
-                      <span>Currently Saved</span>
-                      <span className="text-emerald-400 font-bold tabular-nums">${goalCurrentSaved.toLocaleString()}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={goalTargetAmount}
-                      step={500}
-                      value={goalCurrentSaved}
-                      onChange={(e) => setGoalCurrentSaved(Number(e.target.value))}
-                      className="w-full accent-emerald-500 cursor-pointer"
-                    />
-                  </div>
-
-                  {/* Monthly Contribution */}
-                  <div>
-                    <div className="flex justify-between text-xs font-medium text-slate-300 mb-2">
-                      <span>Monthly Contribution</span>
-                      <span className="text-emerald-400 font-bold tabular-nums">${goalMonthlySavings.toLocaleString()} / mo</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={50}
-                      max={5000}
-                      step={50}
-                      value={goalMonthlySavings}
-                      onChange={(e) => setGoalMonthlySavings(Number(e.target.value))}
-                      className="w-full accent-emerald-500 cursor-pointer"
-                    />
-                  </div>
-
-                </div>
-
-                {/* Output Milestone Card */}
-                <div className="lg:col-span-5 p-6 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-                  <div>
-                    <span className="text-xs text-slate-400 uppercase tracking-wider block mb-1">
-                      Time to Reach Target
-                    </span>
-                    <span className="text-3xl sm:text-4xl font-black text-emerald-400 tabular-nums block mb-4">
-                      {monthsToGoal} Months
-                    </span>
-
-                    {/* Progress Bar */}
-                    <div className="mb-4">
-                      <div className="flex justify-between text-xs text-slate-400 mb-1">
-                        <span>Current Progress</span>
-                        <span className="font-bold text-white tabular-nums">{progressPercent}%</span>
-                      </div>
-                      <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                          style={{ width: `${progressPercent}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 text-xs border-t border-slate-800 pt-3">
-                      <div className="flex justify-between text-slate-300">
-                        <span>Remaining Amount:</span>
-                        <span className="font-semibold tabular-nums">${remainingNeeded.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-slate-300">
-                        <span>Estimated Date:</span>
-                        <span className="font-semibold text-emerald-400">
-                          {new Date(Date.now() + monthsToGoal * 30.5 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={onLaunchApp}
-                    className="mt-6 w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-500/20 active:scale-95"
-                  >
-                    <span>Track This In Priyora Goals</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-        {/* ========================================================
-            DATA SOVEREIGNTY & STORAGE ARCHITECTURE
-           ======================================================== */}
-        <section id="privacy" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
-          <div className="p-8 sm:p-12 rounded-3xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80">
-            <div className="max-w-2xl mb-10">
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-2">
-                Storage & Data Sovereignty
-              </span>
-              <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
-                Your financial data remains strictly yours.
+        <section
+          id="goals-planner"
+          className="py-16 sm:py-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"
+        >
+          <div className="p-6 sm:p-10 rounded-2xl bg-slate-900 dark:bg-slate-900 text-white border border-slate-800">
+            <div className="max-w-2xl mb-8">
+              <p className="text-sm font-medium text-emerald-400 mb-2">
+                Interactive goal planner
+              </p>
+              <h2
+                className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2"
+                style={{ textWrap: 'balance' }}
+              >
+                See how steady monthly habits reach a real milestone.
               </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
-                Priyora is built with clear privacy boundaries. No third-party ad networks, no data brokers, and zero vendor lock-in.
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Adjust a target—whether an emergency buffer, a new phone, or a travel fund—to see
+                your timeline before tracking it inside PRYORA.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
-              <div className="p-5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/50">
-                <Database className="w-5 h-5 text-emerald-500 mb-3" />
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1.5">
-                  1-Click CSV & JSON Export
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Download all your transactions, accounts, and categories anytime via the Data Hub. Import your own CSVs to migrate past records.
-                </p>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              {/* Sliders */}
+              <div className="lg:col-span-7 space-y-6">
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <label htmlFor="goal-target-slider" className="font-medium text-slate-200">
+                      Goal target
+                    </label>
+                    <span className="font-mono font-semibold tabular-nums text-white">
+                      {formatInr(goalTarget)}
+                    </span>
+                  </div>
+                  <input
+                    id="goal-target-slider"
+                    type="range"
+                    min={5000}
+                    max={500000}
+                    step={5000}
+                    value={goalTarget}
+                    onChange={(e) => {
+                      const nextTarget = Number(e.target.value);
+                      setGoalTarget(nextTarget);
+                      if (goalSaved > nextTarget) {
+                        setGoalSaved(nextTarget);
+                      }
+                    }}
+                    className="w-full accent-emerald-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-xs text-slate-400 font-mono mt-1">
+                    <span>₹5,000</span>
+                    <span>₹5,00,000</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <label htmlFor="goal-saved-slider" className="font-medium text-slate-200">
+                      Saved so far
+                    </label>
+                    <span className="font-mono font-semibold tabular-nums text-white">
+                      {formatInr(effectiveSaved)}
+                    </span>
+                  </div>
+                  <input
+                    id="goal-saved-slider"
+                    type="range"
+                    min={0}
+                    max={goalTarget}
+                    step={1000}
+                    value={effectiveSaved}
+                    onChange={(e) => setGoalSaved(Number(e.target.value))}
+                    className="w-full accent-emerald-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-xs text-slate-400 font-mono mt-1">
+                    <span>₹0</span>
+                    <span>{formatInr(goalTarget)}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <label htmlFor="goal-monthly-slider" className="font-medium text-slate-200">
+                      Monthly contribution
+                    </label>
+                    <span className="font-mono font-semibold tabular-nums text-emerald-400">
+                      {formatInr(goalMonthly)} / mo
+                    </span>
+                  </div>
+                  <input
+                    id="goal-monthly-slider"
+                    type="range"
+                    min={500}
+                    max={50000}
+                    step={500}
+                    value={goalMonthly}
+                    onChange={(e) => setGoalMonthly(Number(e.target.value))}
+                    className="w-full accent-emerald-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-xs text-slate-400 font-mono mt-1">
+                    <span>₹500</span>
+                    <span>₹50,000</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="p-5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/50">
-                <Lock className="w-5 h-5 text-emerald-500 mb-3" />
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1.5">
-                  Local-First SQLite Engine
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Powered by `sql.js` for instant in-browser response times and client-side execution without external server lag.
-                </p>
-              </div>
+              {/* Calculated Output */}
+              <div className="lg:col-span-5 lg:border-l lg:border-slate-800 lg:pl-8 space-y-5">
+                <div>
+                  <p className="text-xs font-medium text-slate-400 mb-1">Estimated completion</p>
+                  <p className="font-display text-2xl sm:text-3xl font-bold text-white">
+                    {estimatedCompletionLabel}
+                  </p>
+                  <p className="text-xs text-emerald-400 font-medium mt-1 font-mono tabular-nums">
+                    {remainingNeeded === 0
+                      ? '100% funded'
+                      : `${monthsToGoal} ${monthsToGoal === 1 ? 'month' : 'months'} at ${formatInr(goalMonthly)}/month`}
+                  </p>
+                </div>
 
-              <div className="p-5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/50">
-                <ShieldCheck className="w-5 h-5 text-emerald-500 mb-3" />
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1.5">
-                  Secure Cloud Sync
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Optional Google Firebase Firestore synchronization strictly isolated to your authenticated account UID via audited security rules.
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-slate-300 font-mono tabular-nums">
+                    <span>Progress</span>
+                    <span>{progressPercent}%</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-200"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
 
+                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-800 text-xs">
+                  <div>
+                    <span className="text-slate-400 block mb-0.5">Remaining</span>
+                    <span className="font-mono text-sm font-semibold tabular-nums text-white">
+                      {formatInr(remainingNeeded)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block mb-0.5">Target</span>
+                    <span className="font-mono text-sm font-semibold tabular-nums text-white">
+                      {formatInr(goalTarget)}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePrimaryStart}
+                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm px-5 py-3 rounded-lg inline-flex items-center justify-center gap-2 transition-colors"
+                >
+                  <span>Track This Goal in PRYORA</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </section>
 
         {/* ========================================================
-            ACCESSIBLE FAQ ACCORDION (Data Privacy & Multi-Account Tracking)
+            SECTION 5 — HONEST PRIVACY & DATA ARCHITECTURE
            ======================================================== */}
-        <section id="faq" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
-          <div className="text-center mb-8">
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-2">
-              Transparency & Architecture
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-2.5 max-w-2xl mx-auto leading-relaxed">
-              Direct answers on how PRYORA protects your financial privacy, isolates your ledger data, and tracks balances across all your accounts.
-            </p>
-          </div>
+        <section
+          id="privacy"
+          className="py-16 sm:py-20 border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/40"
+        >
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mb-12">
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-2 inline-flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Privacy & data handling</span>
+              </p>
+              <h2
+                className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-950 dark:text-white mb-3"
+                style={{ textWrap: 'balance' }}
+              >
+                Clear about how your financial data is stored and protected.
+              </h2>
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+                Financial software should earn trust with plain facts, not vague promises. Here is
+                exactly how PRYORA handles your records today.
+              </p>
+            </div>
 
-          {/* Interactive Topic Filter Bar (Segmented Controls) */}
-          <div
-            role="tablist"
-            aria-label="Filter Frequently Asked Questions by topic"
-            className="flex flex-wrap items-center justify-center gap-2 mb-8 p-1.5 rounded-2xl bg-slate-200/60 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 w-fit mx-auto"
-          >
-            {[
-              { id: 'all', label: 'All Questions', count: faqItems.length },
-              {
-                id: 'privacy',
-                label: 'Data Privacy & Sovereignty',
-                count: faqItems.filter((i) => i.category === 'privacy').length,
-              },
-              {
-                id: 'multi-account',
-                label: 'Multi-Account Tracking',
-                count: faqItems.filter((i) => i.category === 'multi-account').length,
-              },
-              {
-                id: 'workflows',
-                label: 'Features & Workflows',
-                count: faqItems.filter((i) => i.category === 'workflows').length,
-              },
-            ].map((tab) => {
-              const isActive = activeFaqCategory === tab.id;
-              return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <h3 className="text-base font-semibold text-slate-950 dark:text-white mb-2">
+                  No bank logins or SMS reading
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  PRYORA never asks for your net-banking credentials, UPI PINs, or SMS inbox access.
+                  You record transactions manually or upload your own CSV and Excel files whenever
+                  you choose.
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <h3 className="text-base font-semibold text-slate-950 dark:text-white mb-2">
+                  Account-isolated database storage
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Your ledger is persisted on the PRYORA application server in an isolated account
+                  record (SQLite) checked on every API request. Local browser storage only caches UI
+                  preferences and user-scoped offline queues, which clear automatically on sign-out.
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <h3 className="text-base font-semibold text-slate-950 dark:text-white mb-2">
+                  Verified sign-in & honest categorization
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Use email and password authentication or optional Google Sign-In backed by
+                  cryptographically verified Firebase ID tokens. Merchant category suggestions rely
+                  primarily on deterministic keyword matching, with optional Gemini fallback only
+                  when enabled server-side.
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <h3 className="text-base font-semibold text-slate-950 dark:text-white mb-2">
+                  Export or permanently delete anytime
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Export your ledger in CSV, Excel (.xlsx), or full JSON backup format from the Data
+                  Hub with no lock-in—or permanently delete your account, sessions, transactions,
+                  and receipts directly from inside the app.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================
+            SECTION 6 — 10-QUESTION FILTERABLE FAQ
+           ======================================================== */}
+        <section id="faq" className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-2">
+              Frequently asked questions
+            </p>
+            <h2
+              className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-950 dark:text-white mb-5"
+              style={{ textWrap: 'balance' }}
+            >
+              Straight answers about PRYORA Early Access.
+            </h2>
+
+            {/* Interactive Filter Tabs */}
+            <div className="inline-flex flex-wrap items-center gap-1 p-1 bg-slate-200/70 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+              {(
+                [
+                  { id: 'all', label: 'All questions (10)' },
+                  { id: 'getting-started', label: 'Getting Started' },
+                  { id: 'privacy', label: 'Privacy & Data' },
+                  { id: 'features', label: 'Features' },
+                ] as const
+              ).map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => {
-                    const nextCategory = tab.id as 'all' | 'privacy' | 'multi-account' | 'workflows';
-                    setActiveFaqCategory(nextCategory);
-                    const firstMatching = faqItems.find(
-                      (item) => nextCategory === 'all' || item.category === nextCategory
-                    );
-                    if (firstMatching) {
-                      setExpandedFaq(firstMatching.id);
-                    }
-                  }}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                    isActive
-                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  onClick={() => setFaqFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors whitespace-nowrap ${
+                    faqFilter === tab.id
+                      ? 'bg-white dark:bg-slate-800 text-slate-950 dark:text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
                   }`}
                 >
-                  <span>{tab.label}</span>
-                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold tabular-nums">
-                    ({tab.count})
-                  </span>
+                  {tab.label}
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
 
-          {/* Accordion List */}
-          <div className="space-y-3">
-            {visibleFaqItems.map((item) => {
-              const isExpanded = expandedFaq === item.id;
+          <div className="divide-y divide-slate-200 dark:divide-slate-800 border-t border-b border-slate-200 dark:border-slate-800">
+            {visibleFaqs.map((item) => {
+              const isOpen = expandedFaq === item.id;
               return (
-                <div
-                  key={item.id}
-                  className={`rounded-2xl border transition-colors overflow-hidden ${
-                    isExpanded
-                      ? 'border-emerald-500/40 dark:border-emerald-500/40 bg-white dark:bg-slate-900 shadow-sm'
-                      : 'border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 hover:border-slate-300 dark:hover:border-slate-700'
-                  }`}
-                >
+                <div key={item.id}>
                   <button
                     type="button"
-                    onClick={() => setExpandedFaq(isExpanded ? null : item.id)}
-                    className="w-full px-6 py-4 text-left flex items-start sm:items-center justify-between gap-4 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    aria-expanded={isExpanded}
+                    aria-expanded={isOpen}
+                    onClick={() => setExpandedFaq(isOpen ? null : item.id)}
+                    className="w-full py-5 text-left flex items-center justify-between gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-md"
                   >
-                    <div className="space-y-1 pr-2">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                        {item.categoryLabel}
-                      </span>
-                      <span className="block text-sm font-bold text-slate-900 dark:text-white leading-snug">
-                        {item.q}
-                      </span>
-                    </div>
+                    <span className="text-sm sm:text-base font-semibold text-slate-950 dark:text-white">
+                      {item.q}
+                    </span>
                     <ChevronDown
-                      className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 mt-1 sm:mt-0 ${
-                        isExpanded ? 'rotate-180 text-emerald-500' : ''
+                      className={`w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0 transition-transform duration-200 ${
+                        isOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : ''
                       }`}
                     />
                   </button>
-                  {isExpanded && (
-                    <div className="px-6 pb-5 pt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-100 dark:border-slate-800/60">
+                  {isOpen && (
+                    <div className="pb-5 pr-8 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                       {item.a}
                     </div>
                   )}
@@ -1077,79 +1413,80 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </section>
 
         {/* ========================================================
-            FINAL CONVERSION BLOCK
+            SECTION 7 — FINAL EARLY ACCESS CONVERSION
            ======================================================== */}
-        <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 text-center">
-          <div className="p-10 sm:p-14 rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 text-white border border-slate-800 shadow-2xl relative overflow-hidden">
-            <div className="max-w-2xl mx-auto relative z-10">
-              <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-4">
-                Take control of your finances today.
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 mb-8 leading-relaxed">
-                Log transactions, stay within budget envelopes, and track your net worth with a clean, fast personal ledger.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={onLaunchApp}
-                  className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm px-6 py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/20 active:scale-95"
-                >
-                  <span>{user ? 'Go to Priyora OS' : 'Get Started Free'}</span>
-                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleQuickDemo}
-                  disabled={demoStarting}
-                  className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-sm px-6 py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95"
-                >
-                  <Zap className="w-4 h-4 text-emerald-400" />
-                  <span>{demoStarting ? 'Preparing...' : 'Explore Live Demo'}</span>
-                </button>
-              </div>
+        <section className="py-16 sm:py-20 border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/40">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2
+              className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-slate-950 dark:text-white mb-4"
+              style={{ textWrap: 'balance' }}
+            >
+              Your financial habits deserve a closer look.
+            </h2>
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-xl mx-auto mb-8 leading-relaxed">
+              Explore PRYORA, try the current experience and help shape what comes next.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handlePrimaryStart}
+                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm px-6 py-3 rounded-lg inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
+              >
+                <span>{user ? 'Go to Dashboard' : 'Explore PRYORA'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleLaunchDemo}
+                disabled={demoLoading}
+                className="w-full sm:w-auto bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 font-semibold text-sm px-6 py-3 rounded-lg inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap disabled:opacity-60"
+              >
+                <span>{demoLoading ? 'Opening Demo...' : 'Try the Demo'}</span>
+              </button>
             </div>
           </div>
         </section>
-
       </main>
 
       {/* ========================================================
-          FOOTER
+          QUIET FOOTER
          ======================================================== */}
-      <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-slate-950/60 py-10 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-          
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-emerald-500 text-slate-950 font-black text-[10px] flex items-center justify-center">
-              P
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-md bg-emerald-500 text-slate-950 font-display font-extrabold text-xs flex items-center justify-center">
+                P
+              </span>
+              <span className="font-display font-bold text-sm tracking-tight text-slate-900 dark:text-white">
+                PRYORA
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                · Public Early Access
+              </span>
             </div>
-            <span className="font-bold text-slate-800 dark:text-slate-200">PRYORA</span>
-            <span aria-hidden="true">·</span>
-            <span>Personal Finance OS</span>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
+              Personal finance tracking and spending visibility tool. PRYORA does not provide
+              regulated investment, tax, or credit advice.
+            </p>
           </div>
 
-          <div className="flex items-center gap-6">
-            <a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">Features</a>
-            <a href="#privacy" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy</a>
-            <a href="#goals-planner" className="hover:text-slate-900 dark:hover:text-white transition-colors">Goal Planner</a>
-            <a href="#faq" className="hover:text-slate-900 dark:hover:text-white transition-colors">FAQ</a>
-            <button
-              type="button"
-              onClick={onLaunchApp}
-              className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
-            >
-              Launch OS
-            </button>
-          </div>
-
-          <div>
-            © 2026 Priyora. MIT Licensed.
+          <div className="flex flex-wrap items-center gap-5 text-xs font-medium text-slate-600 dark:text-slate-400">
+            <a href="#preview" className="hover:text-slate-950 dark:hover:text-white transition-colors">
+              Product
+            </a>
+            <a href="#features" className="hover:text-slate-950 dark:hover:text-white transition-colors">
+              Capabilities
+            </a>
+            <a href="#privacy" className="hover:text-slate-950 dark:hover:text-white transition-colors">
+              Privacy
+            </a>
+            <a href="#faq" className="hover:text-slate-950 dark:hover:text-white transition-colors">
+              FAQ
+            </a>
           </div>
         </div>
       </footer>
-
     </div>
   );
 };

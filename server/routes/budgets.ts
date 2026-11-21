@@ -15,25 +15,28 @@ budgetsRouter.get('/', requireAuth, (req: AuthenticatedRequest, res) => {
   try {
     const userId = req.user!.id;
     const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const year = now.getFullYear();
+    const monthNum = now.getMonth() + 1;
+    const currentMonth = `${year}-${String(monthNum).padStart(2, '0')}`;
+    const lastDay = new Date(year, monthNum, 0).getDate();
     const startOfMonth = `${currentMonth}-01`;
-    const endOfMonth = `${currentMonth}-31`;
+    const endOfMonth = `${currentMonth}-${String(lastDay).padStart(2, '0')}`;
 
     const budgets = query<any>(
       `SELECT b.id, b.category_id, b.amount_minor, b.period, b.month,
               c.name as category_name, c.icon as category_icon, c.color as category_color
        FROM budgets b
-       JOIN categories c ON c.id = b.category_id
+       JOIN categories c ON c.id = b.category_id AND c.user_id = b.user_id
        WHERE b.user_id = ?
        ORDER BY c.name ASC`,
       [userId]
     );
 
-    // Get current month's expenses per category (including direct and splits)
+    // Non-split direct expenses (is_split = 0 prevents double-counting split transactions)
     const directExpenses = query<{ category_id: string; total_spent: number }>(
       `SELECT category_id, SUM(amount_minor) as total_spent
        FROM transactions
-       WHERE user_id = ? AND type = 'expense' AND date >= ? AND date <= ? AND category_id IS NOT NULL
+       WHERE user_id = ? AND type = 'expense' AND is_split = 0 AND date >= ? AND date <= ? AND category_id IS NOT NULL
        GROUP BY category_id`,
       [userId, startOfMonth, endOfMonth]
     );
@@ -42,7 +45,7 @@ budgetsRouter.get('/', requireAuth, (req: AuthenticatedRequest, res) => {
       `SELECT ts.category_id, SUM(ts.amount_minor) as total_spent
        FROM transaction_splits ts
        JOIN transactions t ON t.id = ts.transaction_id
-       WHERE t.user_id = ? AND t.type = 'expense' AND t.date >= ? AND t.date <= ? AND ts.category_id IS NOT NULL
+       WHERE t.user_id = ? AND t.type = 'expense' AND t.is_split = 1 AND t.date >= ? AND t.date <= ? AND ts.category_id IS NOT NULL
        GROUP BY ts.category_id`,
       [userId, startOfMonth, endOfMonth]
     );
@@ -96,10 +99,16 @@ budgetsRouter.get('/', requireAuth, (req: AuthenticatedRequest, res) => {
 budgetsRouter.post('/', requireAuth, (req: AuthenticatedRequest, res) => {
   try {
     const userId = req.user!.id;
-    const { categoryId, amount, period, month } = req.body;
+    const { categoryId, amount, period, month } = req.body || {};
 
-    if (!categoryId) {
+    if (!categoryId || typeof categoryId !== 'string') {
       res.status(400).json({ error: 'Please select a category.' });
+      return;
+    }
+
+    const ownedCategory = queryOne('SELECT id FROM categories WHERE id = ? AND user_id = ?', [categoryId, userId]);
+    if (!ownedCategory) {
+      res.status(403).json({ error: 'Selected category was not found in your workspace.' });
       return;
     }
 
@@ -111,16 +120,24 @@ budgetsRouter.post('/', requireAuth, (req: AuthenticatedRequest, res) => {
       return;
     }
 
+    const safePeriod = period === 'weekly' || period === 'yearly' ? period : 'monthly';
+
     // Check if budget already exists for this category
-    const existing = queryOne('SELECT id FROM budgets WHERE user_id = ? AND category_id = ?', [userId, categoryId]);
+    const existing = queryOne<{ id: string }>('SELECT id FROM budgets WHERE user_id = ? AND category_id = ?', [
+      userId,
+      categoryId,
+    ]);
     const now = new Date().toISOString();
 
     if (existing) {
-      run(
-        `UPDATE budgets SET amount_minor = ?, period = ?, updated_at = ? WHERE id = ?`,
-        [amountMinor, period || 'monthly', now, existing.id]
-      );
-      const updated = queryOne('SELECT * FROM budgets WHERE id = ?', [existing.id]);
+      run(`UPDATE budgets SET amount_minor = ?, period = ?, updated_at = ? WHERE id = ? AND user_id = ?`, [
+        amountMinor,
+        safePeriod,
+        now,
+        existing.id,
+        userId,
+      ]);
+      const updated = queryOne('SELECT * FROM budgets WHERE id = ? AND user_id = ?', [existing.id, userId]);
       res.json({ message: 'Budget updated successfully.', budget: updated });
       return;
     }
@@ -129,10 +146,10 @@ budgetsRouter.post('/', requireAuth, (req: AuthenticatedRequest, res) => {
     run(
       `INSERT INTO budgets (id, user_id, category_id, amount_minor, period, month, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [budgetId, userId, categoryId, amountMinor, period || 'monthly', month || null, now, now]
+      [budgetId, userId, categoryId, amountMinor, safePeriod, month || null, now, now]
     );
 
-    const created = queryOne('SELECT * FROM budgets WHERE id = ?', [budgetId]);
+    const created = queryOne('SELECT * FROM budgets WHERE id = ? AND user_id = ?', [budgetId, userId]);
     res.status(201).json({ message: 'Budget created successfully.', budget: created });
   } catch (err) {
     console.error('Error creating budget:', err);

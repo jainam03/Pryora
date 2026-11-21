@@ -21,10 +21,10 @@ export default defineConfig(() => {
         ],
         manifest: {
           id: '/',
-          name: 'PRYORA — Personal Finance OS',
+          name: 'PRYORA — Personal Finance',
           short_name: 'PRYORA',
           description:
-            'PRYORA: Personal Finance OS for tracking income, expenses, accounts, budgets, cash flow, and net worth.',
+            'Understand your money. Understand your habits. Track expenses, organise accounts, plan budgets, and monitor savings goals.',
           theme_color: '#020617',
           background_color: '#020617',
           display: 'standalone',
@@ -58,6 +58,7 @@ export default defineConfig(() => {
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
+          navigateFallbackDenylist: [/^\/api\//],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -81,22 +82,6 @@ export default defineConfig(() => {
                 expiration: {
                   maxEntries: 10,
                   maxAgeSeconds: 60 * 60 * 24 * 365,
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            {
-              urlPattern: /\/api\/.*/i,
-              handler: 'NetworkFirst',
-              method: 'GET',
-              options: {
-                cacheName: 'pryora-api-ledger-cache',
-                networkTimeoutSeconds: 4,
-                expiration: {
-                  maxEntries: 60,
-                  maxAgeSeconds: 60 * 60 * 24 * 7,
                 },
                 cacheableResponse: {
                   statuses: [0, 200],

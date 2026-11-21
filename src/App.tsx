@@ -54,6 +54,7 @@ const MainApp: React.FC = () => {
     }
     return 'landing';
   });
+  const [authInitialMode, setAuthInitialMode] = useState<'signin' | 'signup'>('signin');
 
   // Active OS module tab: always remembers the user's last visited tab
   const [activeTab, setActiveTab] = useState<TabType>(() => {
@@ -164,10 +165,18 @@ const MainApp: React.FC = () => {
             if (user) {
               setCurrentView('app');
             } else {
+              setAuthInitialMode('signup');
               setCurrentView('auth');
             }
           }}
-          onOpenAuth={() => setCurrentView('auth')}
+          onOpenAuth={(mode = 'signin') => {
+            if (user) {
+              setCurrentView('app');
+            } else {
+              setAuthInitialMode(mode);
+              setCurrentView('auth');
+            }
+          }}
         />
         <OfflineIndicator onRetrySync={syncOfflineAndLoadData} />
       </>
@@ -175,20 +184,16 @@ const MainApp: React.FC = () => {
   }
 
   // 2. Authentication Screen
-  if (currentView === 'auth') {
-    if (user) {
-      // Already authenticated, proceed to app
-      setCurrentView('app');
-    } else {
-      return (
-        <>
-          <AuthScreen
-            onBackToLanding={() => setCurrentView('landing')}
-          />
-          <OfflineIndicator onRetrySync={syncOfflineAndLoadData} />
-        </>
-      );
-    }
+  if (currentView === 'auth' && !user) {
+    return (
+      <>
+        <AuthScreen
+          initialMode={authInitialMode}
+          onBackToLanding={() => setCurrentView('landing')}
+        />
+        <OfflineIndicator onRetrySync={syncOfflineAndLoadData} />
+      </>
+    );
   }
 
   // 3. User unauthenticated in app mode fallback

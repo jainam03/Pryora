@@ -167,13 +167,17 @@ accountsRouter.delete('/:id', requireAuth, (req: AuthenticatedRequest, res) => {
 
     // Check if transactions reference this account
     const txCount = queryOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM transactions WHERE account_id = ? OR to_account_id = ?',
-      [accId, accId]
+      'SELECT COUNT(*) as count FROM transactions WHERE user_id = ? AND (account_id = ? OR to_account_id = ?)',
+      [userId, accId, accId]
     );
 
     if (txCount && txCount.count > 0) {
       // Archive rather than delete to preserve historical integrity
-      run('UPDATE accounts SET is_archived = 1, updated_at = ? WHERE id = ?', [new Date().toISOString(), accId]);
+      run('UPDATE accounts SET is_archived = 1, updated_at = ? WHERE id = ? AND user_id = ?', [
+        new Date().toISOString(),
+        accId,
+        userId,
+      ]);
       res.json({ message: `Account has ${txCount.count} existing transactions. It was archived to preserve your financial history.` });
       return;
     }
@@ -249,14 +253,14 @@ accountsRouter.post('/:id/pay-credit-card', requireAuth, (req: AuthenticatedRequ
 
       // 2. Reduce bank account balance
       run(
-        'UPDATE accounts SET current_balance_minor = current_balance_minor - ?, updated_at = ? WHERE id = ?',
-        [amountMinor, now, fromAccountId]
+        'UPDATE accounts SET current_balance_minor = current_balance_minor - ?, updated_at = ? WHERE id = ? AND user_id = ?',
+        [amountMinor, now, fromAccountId, userId]
       );
 
       // 3. Reduce credit card liability balance
       run(
-        'UPDATE accounts SET current_balance_minor = current_balance_minor - ?, updated_at = ? WHERE id = ?',
-        [amountMinor, now, creditCardId]
+        'UPDATE accounts SET current_balance_minor = current_balance_minor - ?, updated_at = ? WHERE id = ? AND user_id = ?',
+        [amountMinor, now, creditCardId, userId]
       );
     });
 

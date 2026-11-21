@@ -15,27 +15,43 @@ import { calculateBalanceDeltas } from '../domain/finance.js';
 
 export const recurringRouter = Router();
 
-function advanceDate(dateStr: string, frequency: string): string {
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return new Date().toISOString().slice(0, 10);
+export function advanceDate(dateStr: string, frequency: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr || '');
+  if (!match) return new Date().toISOString().slice(0, 10);
+
+  const year = parseInt(match[1], 10);
+  const monthIdx = parseInt(match[2], 10) - 1; // 0-indexed
+  const day = parseInt(match[3], 10);
+
+  if (frequency === 'weekly') {
+    const d = new Date(Date.UTC(year, monthIdx, day + 7));
+    return d.toISOString().slice(0, 10);
+  }
+
+  let targetYear = year;
+  let targetMonthIdx = monthIdx;
 
   switch (frequency) {
-    case 'weekly':
-      d.setDate(d.getDate() + 7);
-      break;
     case 'monthly':
-      d.setMonth(d.getMonth() + 1);
+      targetMonthIdx += 1;
       break;
     case 'quarterly':
-      d.setMonth(d.getMonth() + 3);
+      targetMonthIdx += 3;
       break;
     case 'yearly':
-      d.setFullYear(d.getFullYear() + 1);
+      targetYear += 1;
       break;
     default:
-      d.setMonth(d.getMonth() + 1);
+      targetMonthIdx += 1;
   }
-  return d.toISOString().slice(0, 10);
+
+  targetYear += Math.floor(targetMonthIdx / 12);
+  targetMonthIdx = ((targetMonthIdx % 12) + 12) % 12;
+
+  const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonthIdx + 1, 0)).getUTCDate();
+  const clampedDay = Math.min(day, daysInTargetMonth);
+  const result = new Date(Date.UTC(targetYear, targetMonthIdx, clampedDay));
+  return result.toISOString().slice(0, 10);
 }
 
 function calculateEquivalents(amountMinor: number, frequency: string): { monthlyMinor: number; annualMinor: number } {
@@ -147,9 +163,23 @@ recurringRouter.post('/', requireAuth, (req: AuthenticatedRequest, res) => {
       return;
     }
 
-    if (!accountId) {
+    if (!accountId || typeof accountId !== 'string') {
       res.status(400).json({ error: 'Account assignment is required.' });
       return;
+    }
+
+    const ownedAccount = queryOne('SELECT id FROM accounts WHERE id = ? AND user_id = ?', [accountId, userId]);
+    if (!ownedAccount) {
+      res.status(403).json({ error: 'Selected account was not found in your workspace.' });
+      return;
+    }
+
+    if (categoryId) {
+      const ownedCat = queryOne('SELECT id FROM categories WHERE id = ? AND user_id = ?', [categoryId, userId]);
+      if (!ownedCat) {
+        res.status(403).json({ error: 'Selected category was not found in your workspace.' });
+        return;
+      }
     }
 
     const currency = req.user!.currency || 'INR';
@@ -218,6 +248,22 @@ recurringRouter.put('/:id', requireAuth, (req: AuthenticatedRequest, res) => {
       isSubscription,
       notes,
     } = req.body;
+
+    if (accountId) {
+      const ownedAccount = queryOne('SELECT id FROM accounts WHERE id = ? AND user_id = ?', [accountId, userId]);
+      if (!ownedAccount) {
+        res.status(403).json({ error: 'Selected account was not found in your workspace.' });
+        return;
+      }
+    }
+
+    if (categoryId) {
+      const ownedCat = queryOne('SELECT id FROM categories WHERE id = ? AND user_id = ?', [categoryId, userId]);
+      if (!ownedCat) {
+        res.status(403).json({ error: 'Selected category was not found in your workspace.' });
+        return;
+      }
+    }
 
     const currency = req.user!.currency || 'INR';
     const amountMinor = amount !== undefined ? toMinorUnits(amount, currency) : existing.amount_minor;
@@ -327,13 +373,21 @@ recurringRouter.post('/:id/record-now', requireAuth, (req: AuthenticatedRequest,
         ]
       );
 
-      // 2. Adjust account balance
+      // 2. Adjust owned account balance
       for (const [accId, delta] of deltas.entries()) {
-        run('UPDATE accounts SET current_balance_minor = current_balance_minor + ?, updated_at = ? WHERE id = ?', [delta, now, accId]);
+        run(
+          'UPDATE accounts SET current_balance_minor = current_balance_minor + ?, updated_at = ? WHERE id = ? AND user_id = ?',
+          [delta, now, accId, userId]
+        );
       }
 
       // 3. Advance next date
-      run('UPDATE recurring_rules SET next_expected_date = ?, updated_at = ? WHERE id = ?', [nextDate, now, ruleId]);
+      run('UPDATE recurring_rules SET next_expected_date = ?, updated_at = ? WHERE id = ? AND user_id = ?', [
+        nextDate,
+        now,
+        ruleId,
+        userId,
+      ]);
     });
 
     res.json({

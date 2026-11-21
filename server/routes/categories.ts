@@ -64,9 +64,17 @@ categoriesRouter.post('/', requireAuth, (req: AuthenticatedRequest, res) => {
     const userId = req.user!.id;
     const { name, type, parentId, icon, color } = req.body;
 
-    if (!name || !name.trim()) {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       res.status(400).json({ error: 'Category name is required.' });
       return;
+    }
+
+    if (parentId) {
+      const ownedParent = queryOne('SELECT id FROM categories WHERE id = ? AND user_id = ?', [parentId, userId]);
+      if (!ownedParent) {
+        res.status(403).json({ error: 'Parent category was not found in your workspace.' });
+        return;
+      }
     }
 
     const catId = `cat_${Math.random().toString(36).substring(2, 11)}_${Date.now().toString(36)}`;
@@ -106,6 +114,18 @@ categoriesRouter.put('/:id', requireAuth, (req: AuthenticatedRequest, res) => {
     if (!existing) {
       res.status(404).json({ error: 'Category not found.' });
       return;
+    }
+
+    if (parentId) {
+      if (parentId === catId) {
+        res.status(400).json({ error: 'A category cannot be its own parent.' });
+        return;
+      }
+      const ownedParent = queryOne('SELECT id FROM categories WHERE id = ? AND user_id = ?', [parentId, userId]);
+      if (!ownedParent) {
+        res.status(403).json({ error: 'Parent category was not found in your workspace.' });
+        return;
+      }
     }
 
     run(
@@ -148,13 +168,13 @@ categoriesRouter.delete('/:id', requireAuth, (req: AuthenticatedRequest, res) =>
     }
 
     const txCount = queryOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM transactions WHERE category_id = ?',
-      [catId]
+      'SELECT COUNT(*) as count FROM transactions WHERE category_id = ? AND user_id = ?',
+      [catId, userId]
     );
 
     if (txCount && txCount.count > 0) {
       // Archive to protect transaction integrity
-      run('UPDATE categories SET is_archived = 1 WHERE id = ?', [catId]);
+      run('UPDATE categories SET is_archived = 1 WHERE id = ? AND user_id = ?', [catId, userId]);
       res.json({ message: `Category has ${txCount.count} transactions. It was archived to preserve your history.` });
       return;
     }

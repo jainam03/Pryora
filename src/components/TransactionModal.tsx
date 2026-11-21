@@ -262,8 +262,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 15 * 1024 * 1024) {
-      setError('Receipt image must be under 15MB.');
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Only JPEG, PNG, and WebP receipt images are supported.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Receipt image must be 10MB or smaller.');
       return;
     }
 
@@ -271,6 +277,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     reader.onload = () => {
       setReceiptDataUrl(reader.result as string);
       setReceiptFileName(file.name);
+      setError(null);
     };
     reader.readAsDataURL(file);
   };
@@ -298,6 +305,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     if (type === 'transfer') {
       if (!toAccountId) {
         setError('Please select a destination account for the transfer.');
+        return;
       }
       if (toAccountId === accountId) {
         setError('Destination account must be different from source account.');
@@ -488,9 +496,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 required
                 placeholder={
                   type === 'expense'
-                    ? 'e.g. Starbucks, Uber, Whole Foods, Netflix'
+                    ? 'e.g. Swiggy, Zepto, Uber, Electricity Bill'
                     : type === 'income'
-                    ? 'e.g. Monthly Salary, Freelance project'
+                    ? 'e.g. Monthly Salary, Stipend, Freelance project'
                     : 'e.g. Credit Card payment, Savings transfer'
                 }
                 value={merchant}
@@ -779,7 +787,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <input
               type="file"
               ref={fileInputRef}
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               className="hidden"
               onChange={handleFileChange}
             />

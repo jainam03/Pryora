@@ -143,12 +143,12 @@ goalsRouter.post('/:id/contribute', requireAuth, (req: AuthenticatedRequest, res
       const isCompleted = newTotal >= goal.target_amount_minor ? 1 : 0;
 
       run(
-        `UPDATE goals SET current_amount_minor = ?, is_completed = ?, updated_at = ? WHERE id = ?`,
-        [newTotal, isCompleted, now, goalId]
+        `UPDATE goals SET current_amount_minor = ?, is_completed = ?, updated_at = ? WHERE id = ? AND user_id = ?`,
+        [newTotal, isCompleted, now, goalId, userId]
       );
     });
 
-    const updated = queryOne('SELECT * FROM goals WHERE id = ?', [goalId]);
+    const updated = queryOne('SELECT * FROM goals WHERE id = ? AND user_id = ?', [goalId, userId]);
     res.json({ message: 'Contribution recorded successfully.', goal: updated });
   } catch (err) {
     console.error('Error contributing to goal:', err);

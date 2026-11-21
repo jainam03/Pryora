@@ -202,7 +202,7 @@ export function generateEvidenceBasedInsights(ctx: InsightContext): FinancialIns
         title: 'Strong Cash Retention',
         message: `Your savings rate is currently ${savingsRate}% this month, retaining ${formatMoney(currIncome - currExpense, ctx.currencyCode)} of income.`,
         actionLabel: 'View Cash Flow',
-        actionTab: 'cashflow',
+        actionTab: 'analytics',
         metric: `${savingsRate}%`,
       });
     }

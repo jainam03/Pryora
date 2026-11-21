@@ -26,7 +26,6 @@ import {
   LogOut,
   Sun,
   Moon,
-  Cloud,
   Menu,
   X,
 } from 'lucide-react';
@@ -54,7 +53,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenTransactionModal,
   onNavigateLanding,
 }) => {
-  const { user, logout, isFirebaseAuth } = useAuth();
+  const { user, logout, isDemoUser } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
@@ -98,9 +97,6 @@ export const Navigation: React.FC<NavigationProps> = ({
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="font-extrabold text-base tracking-wider text-slate-900 dark:text-white">PRYORA</span>
-                  <span className="hidden sm:inline-block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
-                    OS
-                  </span>
                 </div>
               </button>
 
@@ -163,33 +159,25 @@ export const Navigation: React.FC<NavigationProps> = ({
                 )}
               </button>
 
-              {/* Storage Backend Badge (Desktop) */}
+              {/* Home Link & Demo Mode Indicator (Desktop) */}
               <div className="hidden xl:flex items-center gap-2">
                 {onNavigateLanding && (
                   <button
                     type="button"
                     onClick={onNavigateLanding}
-                    title="View Priyora Landing Page"
+                    title="View PRYORA Home Page"
                     className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-2.5 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors"
                   >
                     Home
                   </button>
                 )}
-                {isFirebaseAuth ? (
+                {isDemoUser && (
                   <div
-                    title="Your data is saved to your private Google Firebase Firestore cloud database"
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold"
-                  >
-                    <Cloud className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-                    <span>Firebase Cloud</span>
-                  </div>
-                ) : (
-                  <div
-                    title="Demo Sandbox with pre-populated sample data. Sign in with Google to switch to real Firebase cloud storage."
+                    title="You are viewing the shared Demo Workspace with sample INR data. Sign out and create your own account to track your personal finances."
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold"
                   >
                     <Database className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-                    <span>Demo Sandbox</span>
+                    <span>Demo Mode</span>
                   </div>
                 )}
               </div>

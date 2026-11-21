@@ -16,64 +16,79 @@ import path from 'path';
 import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 
 let dbInstance: SqlJsDatabase | null = null;
+let initPromise: Promise<SqlJsDatabase> | null = null;
 let inTransaction = false;
 const isVercel = Boolean(process.env.VERCEL);
 const SOURCE_DB_FILE = path.join(process.cwd(), 'data', 'pryora.db');
-const DATA_DIR = isVercel ? path.join('/tmp', 'pryora-data') : path.join(process.cwd(), 'data');
+const DATA_DIR = process.env.PRYORA_DATA_DIR
+  ? path.resolve(process.env.PRYORA_DATA_DIR)
+  : isVercel
+    ? path.join('/tmp', 'pryora-data')
+    : path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'pryora.db');
 
 export async function initDatabase(): Promise<SqlJsDatabase> {
   if (dbInstance) return dbInstance;
+  if (initPromise) return initPromise;
 
-  if (!fs.existsSync(DATA_DIR)) {
-    try {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    } catch (e) {
-      console.warn('Could not create data directory, falling back to memory/tmp:', e);
+  initPromise = (async () => {
+    if (!fs.existsSync(DATA_DIR)) {
+      try {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      } catch (e) {
+        console.warn('Could not create data directory, falling back to memory/tmp:', e);
+      }
     }
-  }
 
-  // If in Vercel environment and seed DB exists, copy into /tmp
-  if (isVercel && fs.existsSync(SOURCE_DB_FILE) && !fs.existsSync(DB_FILE)) {
-    try {
-      fs.copyFileSync(SOURCE_DB_FILE, DB_FILE);
-    } catch (e) {
-      console.warn('Could not copy seed database to /tmp:', e);
+    // If in Vercel environment and seed DB exists, copy into /tmp
+    if (isVercel && fs.existsSync(SOURCE_DB_FILE) && !fs.existsSync(DB_FILE)) {
+      try {
+        fs.copyFileSync(SOURCE_DB_FILE, DB_FILE);
+      } catch (e) {
+        console.warn('Could not copy seed database to /tmp:', e);
+      }
     }
-  }
 
-  const SQL = await initSqlJs();
+    const SQL = await initSqlJs();
 
-  if (fs.existsSync(DB_FILE)) {
-    try {
-      const fileBuffer = fs.readFileSync(DB_FILE);
-      dbInstance = new SQL.Database(fileBuffer);
-    } catch (err) {
-      console.error('Failed to load existing database file, creating fresh:', err);
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        const fileBuffer = fs.readFileSync(DB_FILE);
+        dbInstance = new SQL.Database(fileBuffer);
+      } catch (err) {
+        console.error('Failed to load existing database file, creating fresh:', err);
+        dbInstance = new SQL.Database();
+      }
+    } else if (fs.existsSync(SOURCE_DB_FILE)) {
+      try {
+        const fileBuffer = fs.readFileSync(SOURCE_DB_FILE);
+        dbInstance = new SQL.Database(fileBuffer);
+      } catch {
+        dbInstance = new SQL.Database();
+      }
+    } else {
       dbInstance = new SQL.Database();
     }
-  } else if (fs.existsSync(SOURCE_DB_FILE)) {
-    try {
-      const fileBuffer = fs.readFileSync(SOURCE_DB_FILE);
-      dbInstance = new SQL.Database(fileBuffer);
-    } catch (err) {
-      dbInstance = new SQL.Database();
-    }
-  } else {
-    dbInstance = new SQL.Database();
+
+    // Enforce foreign key constraints
+    dbInstance.run('PRAGMA foreign_keys = ON;');
+    dbInstance.run('PRAGMA journal_mode = MEMORY;');
+
+    // Run migrations
+    runMigrations(dbInstance);
+
+    // Save initialized DB atomically
+    persistDb();
+
+    return dbInstance;
+  })();
+
+  try {
+    return await initPromise;
+  } catch (err) {
+    initPromise = null;
+    throw err;
   }
-
-  // Enforce foreign key constraints
-  dbInstance.run('PRAGMA foreign_keys = ON;');
-  dbInstance.run('PRAGMA journal_mode = MEMORY;');
-
-  // Run migrations
-  runMigrations(dbInstance);
-
-  // Save initialized DB
-  persistDb();
-
-  return dbInstance;
 }
 
 export function getDb(): SqlJsDatabase {
@@ -83,14 +98,79 @@ export function getDb(): SqlJsDatabase {
   return dbInstance;
 }
 
+/**
+ * Atomic disk persistence: writes to a temporary file in the same directory
+ * and renames into place so a crash mid-write cannot truncate or corrupt pryora.db.
+ */
 export function persistDb(): void {
   if (!dbInstance || inTransaction) return;
+  const tmpFile = `${DB_FILE}.${process.pid}.${Date.now()}.tmp`;
   try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
     const data = dbInstance.export();
-    fs.writeFileSync(DB_FILE, Buffer.from(data));
+    fs.writeFileSync(tmpFile, Buffer.from(data));
+    fs.renameSync(tmpFile, DB_FILE);
   } catch (err) {
-    console.error('Failed to persist database to disk:', err);
+    console.error('Failed to persist database atomically to disk:', err);
+    try {
+      if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+    } catch {
+      // Ignore cleanup error
+    }
   }
+}
+
+export function checkDbHealth(): {
+  ok: boolean;
+  persistenceMode: 'disk-atomic' | 'tmp-ephemeral';
+  fileExists: boolean;
+} {
+  try {
+    const db = getDb();
+    const stmt = db.prepare('SELECT 1 as ok');
+    try {
+      stmt.step();
+    } finally {
+      stmt.free();
+    }
+    return {
+      ok: true,
+      persistenceMode: isVercel ? 'tmp-ephemeral' : 'disk-atomic',
+      fileExists: fs.existsSync(DB_FILE),
+    };
+  } catch {
+    return {
+      ok: false,
+      persistenceMode: isVercel ? 'tmp-ephemeral' : 'disk-atomic',
+      fileExists: fs.existsSync(DB_FILE),
+    };
+  }
+}
+
+/**
+ * Permanently removes a user account and every associated financial record.
+ */
+export function deleteUserAccountData(userId: string): void {
+  transaction(() => {
+    run('DELETE FROM sessions WHERE user_id = ?', [userId]);
+    run('DELETE FROM receipts WHERE user_id = ?', [userId]);
+    run(
+      `DELETE FROM transaction_splits
+       WHERE transaction_id IN (SELECT id FROM transactions WHERE user_id = ?)`,
+      [userId]
+    );
+    run('DELETE FROM transactions WHERE user_id = ?', [userId]);
+    run('DELETE FROM recurring_rules WHERE user_id = ?', [userId]);
+    run('DELETE FROM budgets WHERE user_id = ?', [userId]);
+    run('DELETE FROM goal_contributions WHERE user_id = ?', [userId]);
+    run('DELETE FROM goals WHERE user_id = ?', [userId]);
+    run('DELETE FROM categories WHERE user_id = ?', [userId]);
+    run('DELETE FROM accounts WHERE user_id = ?', [userId]);
+    run('DELETE FROM audit_logs WHERE user_id = ?', [userId]);
+    run('DELETE FROM users WHERE id = ?', [userId]);
+  });
 }
 
 function runMigrations(db: SqlJsDatabase): void {

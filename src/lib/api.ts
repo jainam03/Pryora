@@ -1,10 +1,19 @@
 /**
  * PRYORA Frontend API Client
+ *
+ * Security & offline integrity:
+ * - Scopes offline read-only cache and queued mutations strictly to the active userId
+ * - Clears all cached user data and offline queue on logout or 401 unauthorized
+ * - Sends Idempotency-Key headers when replaying queued offline mutations
+ * - Excludes auth and destructive restore/reset endpoints from offline queueing
  */
 
 import { safeGetItem, safeSetItem, safeRemoveItem } from './storage';
 
 const TOKEN_KEY = 'pryora_auth_token';
+const ACTIVE_USER_KEY = 'pryora_active_user_id';
+const OFFLINE_CACHE_PREFIX = 'pryora_offline_api_';
+const OFFLINE_QUEUE_KEY = 'pryora_offline_mutation_queue';
 
 export function getStoredToken(): string | null {
   return safeGetItem(TOKEN_KEY);
@@ -15,6 +24,66 @@ export function setStoredToken(token: string | null): void {
     safeSetItem(TOKEN_KEY, token);
   } else {
     safeRemoveItem(TOKEN_KEY);
+  }
+}
+
+export function getActiveApiUserId(): string | null {
+  return safeGetItem(ACTIVE_USER_KEY);
+}
+
+export function setActiveApiUserId(userId: string | null): void {
+  const previous = getActiveApiUserId();
+  if (previous && userId && previous !== userId) {
+    // User switched accounts in the same browser — purge prior user's offline data
+    clearOfflineUserData();
+  }
+  if (userId) {
+    safeSetItem(ACTIVE_USER_KEY, userId);
+  } else {
+    safeRemoveItem(ACTIVE_USER_KEY);
+  }
+}
+
+/**
+ * Purges all cached financial GET responses, pending offline mutations, and
+ * any legacy Workbox API caches so no financial data lingers after sign-out.
+ */
+export function clearOfflineUserData(): void {
+  safeRemoveItem(OFFLINE_QUEUE_KEY);
+  safeRemoveItem(ACTIVE_USER_KEY);
+
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const k = window.localStorage.key(i);
+        if (k && k.startsWith(OFFLINE_CACHE_PREFIX)) {
+          keysToRemove.push(k);
+        }
+      }
+      for (const k of keysToRemove) {
+        window.localStorage.removeItem(k);
+      }
+    }
+  } catch {
+    // Ignore storage access restrictions
+  }
+
+  // Delete any legacy SW API cache if present
+  try {
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      window.caches.delete('pryora-api-ledger-cache').catch(() => {});
+    }
+  } catch {
+    // Ignore
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('pryora:offline-queue-updated', {
+        detail: { count: 0, queue: [] },
+      })
+    );
   }
 }
 
@@ -30,16 +99,15 @@ export class ApiError extends Error {
   }
 }
 
-const OFFLINE_CACHE_PREFIX = 'pryora_offline_api_';
-const OFFLINE_QUEUE_KEY = 'pryora_offline_mutation_queue';
-
 export interface QueuedOfflineMutation {
   id: string;
+  userId: string;
   endpoint: string;
   method: string;
   body?: string;
   label: string;
   createdAt: number;
+  retryCount?: number;
 }
 
 function describeMutation(method: string, endpoint: string): string {
@@ -57,8 +125,8 @@ function describeMutation(method: string, endpoint: string): string {
   if (cleanPath.includes('/budgets')) {
     return method === 'DELETE' ? 'Remove budget' : 'Save budget';
   }
-  if (cleanPath.includes('/subscriptions')) {
-    return method === 'DELETE' ? 'Remove subscription' : 'Save subscription';
+  if (cleanPath.includes('/recurring')) {
+    return method === 'DELETE' ? 'Remove recurring rule' : 'Save recurring rule';
   }
   if (cleanPath.includes('/goals')) {
     return method === 'DELETE' ? 'Remove goal' : 'Update goal';
@@ -69,9 +137,12 @@ function describeMutation(method: string, endpoint: string): string {
 export function getOfflineQueue(): QueuedOfflineMutation[] {
   const raw = safeGetItem(OFFLINE_QUEUE_KEY);
   if (!raw) return [];
+  const activeUserId = getActiveApiUserId();
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    if (!activeUserId) return [];
+    return parsed.filter((item: QueuedOfflineMutation) => item && item.userId === activeUserId);
   } catch {
     return [];
   }
@@ -96,15 +167,20 @@ export function enqueueOfflineMutation(
   endpoint: string,
   method: string,
   body?: string
-): QueuedOfflineMutation {
+): QueuedOfflineMutation | null {
+  const userId = getActiveApiUserId();
+  if (!userId) return null;
+
   const queue = getOfflineQueue();
   const item: QueuedOfflineMutation = {
-    id: `offline_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    id: `offline_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+    userId,
     endpoint,
     method,
     body,
     label: describeMutation(method, endpoint),
     createdAt: Date.now(),
+    retryCount: 0,
   };
   queue.push(item);
   saveOfflineQueue(queue);
@@ -112,7 +188,7 @@ export function enqueueOfflineMutation(
 }
 
 export function removeOfflineMutation(id: string): void {
-  const queue = getOfflineQueue().filter((item) => item.id !== id);
+  const queue = getOfflineQueue().filter(item => item.id !== id);
   saveOfflineQueue(queue);
 }
 
@@ -120,15 +196,22 @@ let isFlushingQueue = false;
 
 export async function flushOfflineQueue(): Promise<{
   syncedCount: number;
+  failedCount: number;
   remainingCount: number;
 }> {
   const queue = getOfflineQueue();
   if (queue.length === 0 || isFlushingQueue) {
-    return { syncedCount: 0, remainingCount: queue.length };
+    return { syncedCount: 0, failedCount: 0, remainingCount: queue.length };
   }
 
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    return { syncedCount: 0, remainingCount: queue.length };
+    return { syncedCount: 0, failedCount: 0, remainingCount: queue.length };
+  }
+
+  const token = getStoredToken();
+  const activeUserId = getActiveApiUserId();
+  if (!token || !activeUserId) {
+    return { syncedCount: 0, failedCount: 0, remainingCount: 0 };
   }
 
   isFlushingQueue = true;
@@ -138,31 +221,52 @@ export async function flushOfflineQueue(): Promise<{
     );
   }
 
-  const token = getStoredToken();
   const remaining: QueuedOfflineMutation[] = [];
   let syncedCount = 0;
+  let failedCount = 0;
 
   try {
     for (const item of queue) {
+      if (item.userId !== activeUserId) {
+        continue;
+      }
+
       try {
-        const headers = new Headers({ 'Content-Type': 'application/json' });
-        if (token) {
-          headers.set('Authorization', `Bearer ${token}`);
-        }
+        const headers = new Headers({
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'Idempotency-Key': item.id,
+        });
+
         const response = await fetch(item.endpoint, {
           method: item.method,
           headers,
           body: item.body,
         });
 
-        if (response.ok || (response.status >= 400 && response.status < 500)) {
-          // Succeeded or non-retryable client error
+        if (response.ok) {
           syncedCount += 1;
+        } else if (response.status === 401) {
+          // Session expired — stop flushing and force re-auth
+          clearOfflineUserData();
+          setStoredToken(null);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('pryora:unauthorized'));
+          }
+          return { syncedCount, failedCount, remainingCount: 0 };
+        } else if (response.status >= 400 && response.status < 500) {
+          // Non-retryable validation/authorization error — drop and report failure
+          failedCount += 1;
         } else {
-          remaining.push(item);
+          const nextRetries = (item.retryCount || 0) + 1;
+          if (nextRetries <= 3) {
+            remaining.push({ ...item, retryCount: nextRetries });
+          } else {
+            failedCount += 1;
+          }
         }
       } catch {
-        // Still offline or network interrupted; keep in queue
+        // Network still interrupted; keep in queue for next reconnect
         remaining.push(item);
       }
     }
@@ -172,12 +276,12 @@ export async function flushOfflineQueue(): Promise<{
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('pryora:offline-queue-flushed', {
-          detail: { syncedCount, remainingCount: remaining.length },
+          detail: { syncedCount, failedCount, remainingCount: remaining.length },
         })
       );
     }
 
-    return { syncedCount, remainingCount: remaining.length };
+    return { syncedCount, failedCount, remainingCount: remaining.length };
   } finally {
     isFlushingQueue = false;
     if (typeof window !== 'undefined') {
@@ -191,8 +295,21 @@ export async function flushOfflineQueue(): Promise<{
 function isQueueableEndpoint(method: string, endpoint: string): boolean {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return false;
   if (!endpoint.startsWith('/api/')) return false;
-  if (endpoint.startsWith('/api/auth/') || endpoint.startsWith('/api/advisor/')) return false;
+  if (
+    endpoint.startsWith('/api/auth/') ||
+    endpoint.startsWith('/api/data/restore') ||
+    endpoint.startsWith('/api/data/clear-transactions') ||
+    endpoint.startsWith('/api/categories/suggest')
+  ) {
+    return false;
+  }
   return true;
+}
+
+function getScopedCacheKey(endpoint: string): string | null {
+  const userId = getActiveApiUserId();
+  if (!userId) return null;
+  return `${OFFLINE_CACHE_PREFIX}${userId}_${endpoint}`;
 }
 
 export async function apiRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -214,10 +331,12 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
       headers,
     });
 
-    if (response.status === 401) {
-      // Clear invalid session
+    if (response.status === 401 && !endpoint.startsWith('/api/auth/login') && !endpoint.startsWith('/api/auth/register')) {
       setStoredToken(null);
-      window.dispatchEvent(new CustomEvent('pryora:unauthorized'));
+      clearOfflineUserData();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('pryora:unauthorized'));
+      }
     }
 
     const data = await response.json().catch(() => ({}));
@@ -230,12 +349,15 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
       );
     }
 
-    // Persist read-only GET snapshots for instant offline fallback
-    if (method === 'GET' && endpoint.startsWith('/api/')) {
-      try {
-        safeSetItem(`${OFFLINE_CACHE_PREFIX}${endpoint}`, JSON.stringify(data));
-      } catch {
-        // Ignore storage quota limits for large payloads
+    // Persist user-scoped read-only GET snapshots for offline fallback (never cache /api/auth/*)
+    if (method === 'GET' && endpoint.startsWith('/api/') && !endpoint.startsWith('/api/auth/')) {
+      const cacheKey = getScopedCacheKey(endpoint);
+      if (cacheKey) {
+        try {
+          safeSetItem(cacheKey, JSON.stringify(data));
+        } catch {
+          // Ignore storage quota limits
+        }
       }
     }
 
@@ -245,9 +367,10 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
       throw err;
     }
 
-    // If network request fails on a GET endpoint, fall back to cached offline snapshot
-    if (method === 'GET' && endpoint.startsWith('/api/')) {
-      const cachedRaw = safeGetItem(`${OFFLINE_CACHE_PREFIX}${endpoint}`);
+    // Offline fallback: only serve snapshots scoped to the current authenticated user
+    if (method === 'GET' && endpoint.startsWith('/api/') && !endpoint.startsWith('/api/auth/')) {
+      const cacheKey = getScopedCacheKey(endpoint);
+      const cachedRaw = cacheKey ? safeGetItem(cacheKey) : null;
       if (cachedRaw) {
         try {
           return JSON.parse(cachedRaw) as T;
@@ -257,8 +380,6 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
       }
     }
 
-    // If network request fails on a queueable mutation (e.g., adding a transaction while offline),
-    // enqueue the action for automatic replay once connectivity is restored
     if (
       isQueueableEndpoint(method, endpoint) &&
       (typeof options.body === 'string' || options.body === undefined)
@@ -268,11 +389,13 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
         method,
         typeof options.body === 'string' ? options.body : undefined
       );
-      return {
-        ok: true,
-        queuedOffline: true,
-        offlineMutationId: queuedItem.id,
-      } as unknown as T;
+      if (queuedItem) {
+        return {
+          ok: true,
+          queuedOffline: true,
+          offlineMutationId: queuedItem.id,
+        } as unknown as T;
+      }
     }
 
     throw new ApiError(

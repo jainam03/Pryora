@@ -28,8 +28,9 @@ analyticsRouter.get('/dashboard', requireAuth, (req: AuthenticatedRequest, res) 
     const currentYear = now.getFullYear();
     const currentMonthNum = now.getMonth() + 1;
     const currentMonthStr = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}`;
+    const lastDayCurr = new Date(currentYear, currentMonthNum, 0).getDate();
     const startOfMonth = `${currentMonthStr}-01`;
-    const endOfMonth = `${currentMonthStr}-31`;
+    const endOfMonth = `${currentMonthStr}-${String(lastDayCurr).padStart(2, '0')}`;
 
     // 1. Accounts & Net Worth
     const accounts = query<any>(
@@ -43,22 +44,41 @@ analyticsRouter.get('/dashboard', requireAuth, (req: AuthenticatedRequest, res) 
 
     // 2. Current Month Transactions
     const currentMonthTxs = query<any>(
-      `SELECT id, account_id, to_account_id, category_id, type, amount_minor, date, merchant
+      `SELECT id, account_id, to_account_id, category_id, type, amount_minor, date, merchant, is_split
        FROM transactions
        WHERE user_id = ? AND date >= ? AND date <= ?`,
       [userId, startOfMonth, endOfMonth]
     );
 
+    const currentMonthSplits = query<any>(
+      `SELECT ts.id, ts.transaction_id, ts.category_id, ts.amount_minor, t.type, t.date, t.merchant
+       FROM transaction_splits ts
+       JOIN transactions t ON t.id = ts.transaction_id
+       WHERE t.user_id = ? AND t.is_split = 1 AND t.date >= ? AND t.date <= ?`,
+      [userId, startOfMonth, endOfMonth]
+    );
+
     // 3. Previous Month Transactions (for comparisons and insights)
     const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const prevMonthStr = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+    const prevYear = prevMonthDate.getFullYear();
+    const prevMonthNum = prevMonthDate.getMonth() + 1;
+    const prevMonthStr = `${prevYear}-${String(prevMonthNum).padStart(2, '0')}`;
+    const lastDayPrev = new Date(prevYear, prevMonthNum, 0).getDate();
     const startOfPrevMonth = `${prevMonthStr}-01`;
-    const endOfPrevMonth = `${prevMonthStr}-31`;
+    const endOfPrevMonth = `${prevMonthStr}-${String(lastDayPrev).padStart(2, '0')}`;
 
     const prevMonthTxs = query<any>(
-      `SELECT id, type, amount_minor, category_id, date, merchant
+      `SELECT id, type, amount_minor, category_id, date, merchant, is_split
        FROM transactions
        WHERE user_id = ? AND date >= ? AND date <= ?`,
+      [userId, startOfPrevMonth, endOfPrevMonth]
+    );
+
+    const prevMonthSplits = query<any>(
+      `SELECT ts.id, ts.transaction_id, ts.category_id, ts.amount_minor, t.type, t.date, t.merchant
+       FROM transaction_splits ts
+       JOIN transactions t ON t.id = ts.transaction_id
+       WHERE t.user_id = ? AND t.is_split = 1 AND t.date >= ? AND t.date <= ?`,
       [userId, startOfPrevMonth, endOfPrevMonth]
     );
 
@@ -66,38 +86,41 @@ analyticsRouter.get('/dashboard', requireAuth, (req: AuthenticatedRequest, res) 
     const cashFlow = calculateCashFlow(currentMonthTxs);
     const prevCashFlow = calculateCashFlow(prevMonthTxs);
 
-    // 5. Recent Transactions (last 10)
+    // 5. Recent Transactions (last 8)
     const recentTransactions = query<any>(
       `SELECT t.id, t.type, t.amount_minor, t.currency, t.merchant, t.date, t.notes,
               a.name as account_name, a.color as account_color,
               c.name as category_name, c.icon as category_icon, c.color as category_color
        FROM transactions t
-       LEFT JOIN accounts a ON a.id = t.account_id
-       LEFT JOIN categories c ON c.id = t.category_id
+       LEFT JOIN accounts a ON a.id = t.account_id AND a.user_id = t.user_id
+       LEFT JOIN categories c ON c.id = t.category_id AND c.user_id = t.user_id
        WHERE t.user_id = ?
        ORDER BY t.date DESC, t.created_at DESC
        LIMIT 8`,
       [userId]
     );
 
-    // 6. Budgets
+    // 6. Budgets (accurately combining direct non-split expenses + split items)
     const budgets = query<any>(
       `SELECT b.id, b.category_id, b.amount_minor, c.name as category_name, c.icon as category_icon, c.color as category_color
        FROM budgets b
-       JOIN categories c ON c.id = b.category_id
+       JOIN categories c ON c.id = b.category_id AND c.user_id = b.user_id
        WHERE b.user_id = ?`,
       [userId]
     );
 
-    // Calculate budget spending
     const spentByCategory = new Map<string, number>();
     for (const tx of currentMonthTxs) {
-      const catId = tx.category_id || tx.categoryId;
-      const amt = tx.amount_minor !== undefined ? tx.amount_minor : (tx.amountMinor || 0);
-      if (tx.type === 'expense' && catId) {
-        spentByCategory.set(catId, (spentByCategory.get(catId) || 0) + amt);
+      if (tx.type === 'expense' && tx.is_split === 0 && tx.category_id) {
+        spentByCategory.set(tx.category_id, (spentByCategory.get(tx.category_id) || 0) + (tx.amount_minor || 0));
       }
     }
+    for (const sp of currentMonthSplits) {
+      if (sp.type === 'expense' && sp.category_id) {
+        spentByCategory.set(sp.category_id, (spentByCategory.get(sp.category_id) || 0) + (sp.amount_minor || 0));
+      }
+    }
+
     const enhancedBudgets = budgets.map(b => {
       const spent = spentByCategory.get(b.category_id) || 0;
       return {
@@ -138,16 +161,79 @@ analyticsRouter.get('/dashboard', requireAuth, (req: AuthenticatedRequest, res) 
     // 9. Categories map
     const categories = query<any>('SELECT id, name FROM categories WHERE user_id = ?', [userId]);
 
-    // 10. Generate Evidence-based insights
+    // 10. Generate Evidence-based insights (properly mapped to camelCase domain shape, including split breakdowns)
+    const insightCurrentTxs = [
+      ...currentMonthTxs
+        .filter(tx => tx.is_split === 0 || tx.type !== 'expense')
+        .map(tx => ({
+          id: tx.id,
+          type: tx.type,
+          amountMinor: tx.amount_minor || 0,
+          categoryId: tx.category_id || null,
+          date: tx.date,
+          merchant: tx.merchant,
+        })),
+      ...currentMonthSplits
+        .filter(sp => sp.type === 'expense')
+        .map(sp => ({
+          id: sp.id,
+          type: sp.type,
+          amountMinor: sp.amount_minor || 0,
+          categoryId: sp.category_id || null,
+          date: sp.date,
+          merchant: sp.merchant,
+        })),
+    ];
+
+    const insightPrevTxs = [
+      ...prevMonthTxs
+        .filter(tx => tx.is_split === 0 || tx.type !== 'expense')
+        .map(tx => ({
+          id: tx.id,
+          type: tx.type,
+          amountMinor: tx.amount_minor || 0,
+          categoryId: tx.category_id || null,
+          date: tx.date,
+          merchant: tx.merchant,
+        })),
+      ...prevMonthSplits
+        .filter(sp => sp.type === 'expense')
+        .map(sp => ({
+          id: sp.id,
+          type: sp.type,
+          amountMinor: sp.amount_minor || 0,
+          categoryId: sp.category_id || null,
+          date: sp.date,
+          merchant: sp.merchant,
+        })),
+    ];
+
     const insights = generateEvidenceBasedInsights({
       currencyCode: currency,
       nowDate: now,
-      accounts,
+      accounts: accounts.map(a => ({
+        id: a.id,
+        name: a.name,
+        type: a.type,
+        currentBalanceMinor: a.current_balance_minor || 0,
+        creditLimitMinor: a.credit_limit_minor || 0,
+      })),
       categories,
-      currentMonthTransactions: currentMonthTxs,
-      previousMonthTransactions: prevMonthTxs,
-      budgets,
-      recurringRules,
+      currentMonthTransactions: insightCurrentTxs,
+      previousMonthTransactions: insightPrevTxs,
+      budgets: budgets.map(b => ({
+        id: b.id,
+        categoryId: b.category_id,
+        amountMinor: b.amount_minor || 0,
+      })),
+      recurringRules: recurringRules.map(r => ({
+        id: r.id,
+        merchant: r.merchant,
+        amountMinor: r.amount_minor || 0,
+        frequency: r.frequency,
+        nextExpectedDate: r.next_expected_date,
+        isActive: r.is_active,
+      })),
     });
 
     // 11. Current Week Daily Spending Trends (Monday to Sunday)
@@ -332,16 +418,38 @@ analyticsRouter.get('/spending', requireAuth, (req: AuthenticatedRequest, res) =
       endDate = `${now.getFullYear()}-12-31`;
     }
 
-    // Direct category expenses
+    // Direct non-split category expenses
     const directCategories = query<any>(
       `SELECT c.id, c.name, c.icon, c.color, SUM(t.amount_minor) as total_minor, COUNT(t.id) as count
        FROM transactions t
-       JOIN categories c ON c.id = t.category_id
-       WHERE t.user_id = ? AND t.type = 'expense' AND t.date >= ? AND t.date <= ?
-       GROUP BY c.id
-       ORDER BY total_minor DESC`,
+       JOIN categories c ON c.id = t.category_id AND c.user_id = t.user_id
+       WHERE t.user_id = ? AND t.type = 'expense' AND t.is_split = 0 AND t.date >= ? AND t.date <= ?
+       GROUP BY c.id`,
       [userId, startDate, endDate]
     );
+
+    // Split transaction category expenses
+    const splitCategories = query<any>(
+      `SELECT c.id, c.name, c.icon, c.color, SUM(ts.amount_minor) as total_minor, COUNT(DISTINCT ts.transaction_id) as count
+       FROM transaction_splits ts
+       JOIN transactions t ON t.id = ts.transaction_id
+       JOIN categories c ON c.id = ts.category_id AND c.user_id = t.user_id
+       WHERE t.user_id = ? AND t.type = 'expense' AND t.is_split = 1 AND t.date >= ? AND t.date <= ?
+       GROUP BY c.id`,
+      [userId, startDate, endDate]
+    );
+
+    const mergedCatMap = new Map<string, any>();
+    for (const row of [...directCategories, ...splitCategories]) {
+      const existing = mergedCatMap.get(row.id);
+      if (existing) {
+        existing.total_minor += row.total_minor || 0;
+        existing.count += row.count || 0;
+      } else {
+        mergedCatMap.set(row.id, { ...row });
+      }
+    }
+    const combinedCategories = Array.from(mergedCatMap.values()).sort((a, b) => b.total_minor - a.total_minor);
 
     // Top merchants
     const merchants = query<any>(
@@ -354,9 +462,9 @@ analyticsRouter.get('/spending', requireAuth, (req: AuthenticatedRequest, res) =
       [userId, startDate, endDate]
     );
 
-    const totalExpenseMinor = directCategories.reduce((sum: number, c: any) => sum + (c.total_minor || 0), 0);
+    const totalExpenseMinor = combinedCategories.reduce((sum: number, c: any) => sum + (c.total_minor || 0), 0);
 
-    const categoriesWithShare = directCategories.map((c: any) => ({
+    const categoriesWithShare = combinedCategories.map((c: any) => ({
       ...c,
       share_percentage: totalExpenseMinor > 0 ? Math.round((c.total_minor / totalExpenseMinor) * 100) : 0,
     }));

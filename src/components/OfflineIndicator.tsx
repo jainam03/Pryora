@@ -18,6 +18,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ onRetrySync 
   const [queue, setQueue] = useState<QueuedOfflineMutation[]>(() => getOfflineQueue());
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [lastSyncedCount, setLastSyncedCount] = useState<number>(0);
+  const [lastFailedCount, setLastFailedCount] = useState<number>(0);
   const [showQueueDetails, setShowQueueDetails] = useState<boolean>(false);
 
   const pendingCount = queue.length;
@@ -42,9 +43,16 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ onRetrySync 
     };
 
     const handleQueueFlushed = (e: Event) => {
-      const customEvent = e as CustomEvent<{ syncedCount: number; remainingCount: number }>;
+      const customEvent = e as CustomEvent<{
+        syncedCount: number;
+        failedCount?: number;
+        remainingCount: number;
+      }>;
       if (customEvent.detail?.syncedCount) {
         setLastSyncedCount(customEvent.detail.syncedCount);
+      }
+      if (typeof customEvent.detail?.failedCount === 'number') {
+        setLastFailedCount(customEvent.detail.failedCount);
       }
       setQueue(getOfflineQueue());
     };
@@ -79,7 +87,8 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ onRetrySync 
     }
   };
 
-  const shouldRenderOnlineBanner = isOnline && (justReconnected || isSyncing || pendingCount > 0);
+  const shouldRenderOnlineBanner =
+    isOnline && (justReconnected || isSyncing || pendingCount > 0 || lastFailedCount > 0);
 
   if (isOnline && !shouldRenderOnlineBanner) {
     return null;
@@ -217,7 +226,13 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ onRetrySync 
           </div>
         </div>
       ) : (
-        <div className="pointer-events-auto flex items-center justify-between gap-3 rounded-2xl bg-emerald-500 text-slate-950 px-4 py-2.5 text-xs font-bold shadow-xl border border-emerald-400">
+        <div
+          className={`pointer-events-auto flex items-center justify-between gap-3 rounded-2xl px-4 py-2.5 text-xs font-bold shadow-xl border ${
+            lastFailedCount > 0 && pendingCount === 0
+              ? 'bg-rose-500 text-white border-rose-400'
+              : 'bg-emerald-500 text-slate-950 border-emerald-400'
+          }`}
+        >
           <div className="flex items-center gap-2 min-w-0">
             <Wifi className="w-4 h-4 shrink-0 stroke-[2.2]" />
             <span className="truncate">
@@ -231,6 +246,11 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ onRetrySync 
                   Online — {pendingCount} pending {pendingCount === 1 ? 'action' : 'actions'} ready to
                   sync
                 </span>
+              ) : lastFailedCount > 0 ? (
+                <span className="tabular-nums">
+                  Sync incomplete — {lastFailedCount}{' '}
+                  {lastFailedCount === 1 ? 'action was' : 'actions were'} rejected by the server. Please verify your ledger.
+                </span>
               ) : lastSyncedCount > 0 ? (
                 <span className="tabular-nums">
                   Back Online — Synced {lastSyncedCount} queued{' '}
@@ -242,7 +262,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ onRetrySync 
             </span>
           </div>
 
-          {pendingCount > 0 && (
+          {pendingCount > 0 ? (
             <button
               type="button"
               onClick={handleManualSync}
@@ -252,7 +272,16 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ onRetrySync 
               <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
               <span>Sync Now ({pendingCount})</span>
             </button>
-          )}
+          ) : lastFailedCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => setLastFailedCount(0)}
+              className="p-1 rounded-lg hover:bg-rose-600/40 transition-colors shrink-0"
+              aria-label="Dismiss sync warning"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          ) : null}
         </div>
       )}
     </div>

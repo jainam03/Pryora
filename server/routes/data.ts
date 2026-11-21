@@ -572,6 +572,14 @@ dataRouter.post('/import/csv/commit', requireAuth, (req: AuthenticatedRequest, r
           }
         }
 
+        // Verify targetCategoryId belongs to this user if passed from client
+        if (targetCategoryId) {
+          const ownedCat = existingCategories.find(c => c.id === targetCategoryId);
+          if (!ownedCat) {
+            targetCategoryId = null;
+          }
+        }
+
         const cleanDate = normalizeDate(row.date) || new Date().toISOString().slice(0, 10);
 
         // Insert transaction
@@ -595,7 +603,7 @@ dataRouter.post('/import/csv/commit', requireAuth, (req: AuthenticatedRequest, r
           ]
         );
 
-        // Adjust account balance
+        // Adjust owned account balance
         const deltas = calculateBalanceDeltas(
           {
             accountId: targetAccountId,
@@ -607,8 +615,8 @@ dataRouter.post('/import/csv/commit', requireAuth, (req: AuthenticatedRequest, r
 
         for (const [accId, delta] of deltas.entries()) {
           run(
-            'UPDATE accounts SET current_balance_minor = current_balance_minor + ?, updated_at = ? WHERE id = ?',
-            [delta, now, accId]
+            'UPDATE accounts SET current_balance_minor = current_balance_minor + ?, updated_at = ? WHERE id = ? AND user_id = ?',
+            [delta, now, accId, userId]
           );
         }
 
@@ -644,189 +652,295 @@ dataRouter.post('/restore/json', requireAuth, (req: AuthenticatedRequest, res) =
   res.redirect(307, '/api/data/restore');
 });
 
-// POST /api/data/restore - Safe restore from JSON backup
+// POST /api/data/restore - Safe user-isolated restore from JSON backup
 dataRouter.post('/restore', requireAuth, (req: AuthenticatedRequest, res) => {
   try {
     const userId = req.user!.id;
-    const { backupData } = req.body;
+    const { backupData } = req.body || {};
 
-    if (!backupData || !backupData.pryora_version) {
+    if (!backupData || typeof backupData !== 'object' || !backupData.pryora_version) {
       res.status(400).json({ error: 'Invalid PRYORA backup file format.' });
       return;
     }
 
     const now = new Date().toISOString();
+    const accountIdMap = new Map<string, string>();
+    const categoryIdMap = new Map<string, string>();
+    const recurringIdMap = new Map<string, string>();
+    const txIdMap = new Map<string, string>();
+    const goalIdMap = new Map<string, string>();
+
+    const makeFreshId = (prefix: string) =>
+      `${prefix}_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}`;
 
     transaction(() => {
-      // 1. Restore accounts
+      // 1. Restore accounts (remap colliding IDs belonging to other users so cross-user references are impossible)
       if (Array.isArray(backupData.accounts)) {
         for (const acc of backupData.accounts) {
-          const existing = queryOne('SELECT id FROM accounts WHERE id = ?', [acc.id]);
-          if (!existing) {
-            run(
-              `INSERT INTO accounts (id, user_id, name, type, currency, initial_balance_minor, current_balance_minor,
-                                     institution, color, icon, credit_limit_minor, statement_day, due_day, minimum_payment_minor,
-                                     is_archived, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                acc.id,
-                userId,
-                acc.name,
-                acc.type,
-                acc.currency || 'INR',
-                acc.initial_balance_minor || 0,
-                acc.current_balance_minor || 0,
-                acc.institution || '',
-                acc.color || '#3B82F6',
-                acc.icon || 'Wallet',
-                acc.credit_limit_minor || 0,
-                acc.statement_day || null,
-                acc.due_day || null,
-                acc.minimum_payment_minor || 0,
-                acc.is_archived || 0,
-                acc.created_at || now,
-                now,
-              ]
-            );
+          if (!acc?.id || !acc?.name) continue;
+          const ownedExisting = queryOne<{ id: string }>('SELECT id FROM accounts WHERE id = ? AND user_id = ?', [
+            acc.id,
+            userId,
+          ]);
+          if (ownedExisting) {
+            accountIdMap.set(acc.id, ownedExisting.id);
+            continue;
           }
+          const collision = queryOne<{ id: string }>('SELECT id FROM accounts WHERE id = ?', [acc.id]);
+          const targetId = collision ? makeFreshId('acc') : acc.id;
+          accountIdMap.set(acc.id, targetId);
+
+          run(
+            `INSERT INTO accounts (id, user_id, name, type, currency, initial_balance_minor, current_balance_minor,
+                                   institution, color, icon, credit_limit_minor, statement_day, due_day, minimum_payment_minor,
+                                   is_archived, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              targetId,
+              userId,
+              String(acc.name).slice(0, 80),
+              acc.type || 'checking',
+              acc.currency || 'INR',
+              acc.initial_balance_minor || 0,
+              acc.current_balance_minor || 0,
+              acc.institution || '',
+              acc.color || '#3B82F6',
+              acc.icon || 'Wallet',
+              acc.credit_limit_minor || 0,
+              acc.statement_day || null,
+              acc.due_day || null,
+              acc.minimum_payment_minor || 0,
+              acc.is_archived ? 1 : 0,
+              acc.created_at || now,
+              now,
+            ]
+          );
         }
       }
 
       // 2. Restore categories
       if (Array.isArray(backupData.categories)) {
         for (const cat of backupData.categories) {
-          const existing = queryOne('SELECT id FROM categories WHERE id = ?', [cat.id]);
-          if (!existing) {
-            run(
-              `INSERT INTO categories (id, user_id, parent_id, name, type, icon, color, is_archived, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                cat.id,
-                userId,
-                cat.parent_id || null,
-                cat.name,
-                cat.type,
-                cat.icon || 'Tag',
-                cat.color || '#6366F1',
-                cat.is_archived || 0,
-                cat.created_at || now,
-              ]
-            );
+          if (!cat?.id || !cat?.name) continue;
+          const ownedExisting = queryOne<{ id: string }>('SELECT id FROM categories WHERE id = ? AND user_id = ?', [
+            cat.id,
+            userId,
+          ]);
+          if (ownedExisting) {
+            categoryIdMap.set(cat.id, ownedExisting.id);
+            continue;
           }
+          const collision = queryOne<{ id: string }>('SELECT id FROM categories WHERE id = ?', [cat.id]);
+          const targetId = collision ? makeFreshId('cat') : cat.id;
+          categoryIdMap.set(cat.id, targetId);
+
+          run(
+            `INSERT INTO categories (id, user_id, parent_id, name, type, icon, color, is_archived, created_at)
+             VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)`,
+            [
+              targetId,
+              userId,
+              String(cat.name).slice(0, 80),
+              cat.type || 'expense',
+              cat.icon || 'Tag',
+              cat.color || '#6366F1',
+              cat.is_archived ? 1 : 0,
+              cat.created_at || now,
+            ]
+          );
         }
       }
 
-      // 3. Restore transactions
-      if (Array.isArray(backupData.transactions)) {
-        for (const tx of backupData.transactions) {
-          const existing = queryOne('SELECT id FROM transactions WHERE id = ?', [tx.id]);
-          if (!existing) {
-            run(
-              `INSERT INTO transactions (id, user_id, account_id, to_account_id, category_id, type,
-                                         amount_minor, currency, merchant, date, notes, tags, receipt_url,
-                                         recurring_rule_id, is_split, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                tx.id,
-                userId,
-                tx.account_id,
-                tx.to_account_id || null,
-                tx.category_id || null,
-                tx.type,
-                tx.amount_minor,
-                tx.currency || 'INR',
-                tx.merchant,
-                tx.date,
-                tx.notes || null,
-                tx.tags || null,
-                tx.receipt_url || null,
-                tx.recurring_rule_id || null,
-                tx.is_split || 0,
-                tx.created_at || now,
-                now,
-              ]
-            );
-          }
-        }
-      }
-
-      // 4. Restore budgets
-      if (Array.isArray(backupData.budgets)) {
-        for (const b of backupData.budgets) {
-          const existing = queryOne('SELECT id FROM budgets WHERE id = ?', [b.id]);
-          if (!existing) {
-            run(
-              `INSERT INTO budgets (id, user_id, category_id, amount_minor, period, month, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-              [b.id, userId, b.category_id, b.amount_minor, b.period || 'monthly', b.month || null, b.created_at || now, now]
-            );
-          }
-        }
-      }
-
-      // 5. Restore recurring rules
+      // 3. Restore recurring rules (before transactions so recurring_rule_id FK resolves)
       if (Array.isArray(backupData.recurring_rules)) {
         for (const r of backupData.recurring_rules) {
-          const existing = queryOne('SELECT id FROM recurring_rules WHERE id = ?', [r.id]);
-          if (!existing) {
-            run(
-              `INSERT INTO recurring_rules (id, user_id, account_id, category_id, type, merchant,
-                                            amount_minor, frequency, next_expected_date, is_active,
-                                            is_subscription, notes, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                r.id,
-                userId,
-                r.account_id,
-                r.category_id || null,
-                r.type,
-                r.merchant,
-                r.amount_minor,
-                r.frequency,
-                r.next_expected_date,
-                r.is_active || 1,
-                r.is_subscription || 0,
-                r.notes || null,
-                r.created_at || now,
-                now,
-              ]
-            );
+          if (!r?.id || !r?.merchant) continue;
+          const mappedAccountId = accountIdMap.get(r.account_id);
+          if (!mappedAccountId) continue;
+
+          const ownedExisting = queryOne<{ id: string }>(
+            'SELECT id FROM recurring_rules WHERE id = ? AND user_id = ?',
+            [r.id, userId]
+          );
+          if (ownedExisting) {
+            recurringIdMap.set(r.id, ownedExisting.id);
+            continue;
           }
+          const collision = queryOne<{ id: string }>('SELECT id FROM recurring_rules WHERE id = ?', [r.id]);
+          const targetId = collision ? makeFreshId('rec') : r.id;
+          recurringIdMap.set(r.id, targetId);
+
+          run(
+            `INSERT INTO recurring_rules (id, user_id, account_id, category_id, type, merchant,
+                                          amount_minor, frequency, next_expected_date, is_active,
+                                          is_subscription, notes, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              targetId,
+              userId,
+              mappedAccountId,
+              r.category_id ? categoryIdMap.get(r.category_id) || null : null,
+              r.type || 'expense',
+              String(r.merchant).slice(0, 160),
+              r.amount_minor || 0,
+              r.frequency || 'monthly',
+              r.next_expected_date || now.slice(0, 10),
+              r.is_active !== undefined ? (r.is_active ? 1 : 0) : 1,
+              r.is_subscription ? 1 : 0,
+              r.notes || null,
+              r.created_at || now,
+              now,
+            ]
+          );
         }
       }
 
-      // 6. Restore goals
+      // 4. Restore transactions
+      if (Array.isArray(backupData.transactions)) {
+        for (const tx of backupData.transactions) {
+          if (!tx?.id || !tx?.merchant) continue;
+          const mappedAccountId = accountIdMap.get(tx.account_id);
+          if (!mappedAccountId) continue;
+
+          const ownedExisting = queryOne<{ id: string }>('SELECT id FROM transactions WHERE id = ? AND user_id = ?', [
+            tx.id,
+            userId,
+          ]);
+          if (ownedExisting) {
+            txIdMap.set(tx.id, ownedExisting.id);
+            continue;
+          }
+          const collision = queryOne<{ id: string }>('SELECT id FROM transactions WHERE id = ?', [tx.id]);
+          const targetId = collision ? makeFreshId('tx') : tx.id;
+          txIdMap.set(tx.id, targetId);
+
+          run(
+            `INSERT INTO transactions (id, user_id, account_id, to_account_id, category_id, type,
+                                       amount_minor, currency, merchant, date, notes, tags, receipt_url,
+                                       recurring_rule_id, is_split, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              targetId,
+              userId,
+              mappedAccountId,
+              tx.to_account_id ? accountIdMap.get(tx.to_account_id) || null : null,
+              tx.category_id ? categoryIdMap.get(tx.category_id) || null : null,
+              tx.type || 'expense',
+              tx.amount_minor || 0,
+              tx.currency || 'INR',
+              String(tx.merchant).slice(0, 160),
+              tx.date || now.slice(0, 10),
+              tx.notes || null,
+              tx.tags || null,
+              null,
+              tx.recurring_rule_id ? recurringIdMap.get(tx.recurring_rule_id) || null : null,
+              tx.is_split ? 1 : 0,
+              tx.created_at || now,
+              now,
+            ]
+          );
+        }
+      }
+
+      // 5. Restore transaction splits
+      if (Array.isArray(backupData.transaction_splits)) {
+        for (const sp of backupData.transaction_splits) {
+          const mappedTxId = txIdMap.get(sp?.transaction_id);
+          if (!mappedTxId) continue;
+          const existing = queryOne('SELECT id FROM transaction_splits WHERE id = ?', [sp.id]);
+          const targetId = existing ? makeFreshId('sp') : sp.id || makeFreshId('sp');
+          run(
+            `INSERT INTO transaction_splits (id, transaction_id, category_id, amount_minor, notes, created_at)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              targetId,
+              mappedTxId,
+              sp.category_id ? categoryIdMap.get(sp.category_id) || null : null,
+              sp.amount_minor || 0,
+              sp.notes || null,
+              sp.created_at || now,
+            ]
+          );
+        }
+      }
+
+      // 6. Restore budgets
+      if (Array.isArray(backupData.budgets)) {
+        for (const b of backupData.budgets) {
+          const mappedCatId = b?.category_id ? categoryIdMap.get(b.category_id) : null;
+          if (!mappedCatId) continue;
+          const ownedExisting = queryOne('SELECT id FROM budgets WHERE user_id = ? AND category_id = ?', [
+            userId,
+            mappedCatId,
+          ]);
+          if (ownedExisting) continue;
+          const collision = b.id ? queryOne('SELECT id FROM budgets WHERE id = ?', [b.id]) : null;
+          const targetId = collision || !b.id ? makeFreshId('bgt') : b.id;
+
+          run(
+            `INSERT INTO budgets (id, user_id, category_id, amount_minor, period, month, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [targetId, userId, mappedCatId, b.amount_minor || 0, b.period || 'monthly', b.month || null, b.created_at || now, now]
+          );
+        }
+      }
+
+      // 7. Restore goals & contributions
       if (Array.isArray(backupData.goals)) {
         for (const g of backupData.goals) {
-          const existing = queryOne('SELECT id FROM goals WHERE id = ?', [g.id]);
-          if (!existing) {
-            run(
-              `INSERT INTO goals (id, user_id, name, target_amount_minor, current_amount_minor,
-                                  target_date, category, color, icon, is_completed, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                g.id,
-                userId,
-                g.name,
-                g.target_amount_minor,
-                g.current_amount_minor || 0,
-                g.target_date || null,
-                g.category || 'savings_target',
-                g.color || '#10B981',
-                g.icon || 'Target',
-                g.is_completed || 0,
-                g.created_at || now,
-                now,
-              ]
-            );
+          if (!g?.id || !g?.name) continue;
+          const ownedExisting = queryOne<{ id: string }>('SELECT id FROM goals WHERE id = ? AND user_id = ?', [
+            g.id,
+            userId,
+          ]);
+          if (ownedExisting) {
+            goalIdMap.set(g.id, ownedExisting.id);
+            continue;
           }
+          const collision = queryOne<{ id: string }>('SELECT id FROM goals WHERE id = ?', [g.id]);
+          const targetId = collision ? makeFreshId('goal') : g.id;
+          goalIdMap.set(g.id, targetId);
+
+          run(
+            `INSERT INTO goals (id, user_id, name, target_amount_minor, current_amount_minor,
+                                target_date, category, color, icon, is_completed, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              targetId,
+              userId,
+              String(g.name).slice(0, 100),
+              g.target_amount_minor || 0,
+              g.current_amount_minor || 0,
+              g.target_date || null,
+              g.category || 'savings_target',
+              g.color || '#10B981',
+              g.icon || 'Target',
+              g.is_completed ? 1 : 0,
+              g.created_at || now,
+              now,
+            ]
+          );
+        }
+      }
+
+      if (Array.isArray(backupData.goal_contributions)) {
+        for (const gc of backupData.goal_contributions) {
+          const mappedGoalId = gc?.goal_id ? goalIdMap.get(gc.goal_id) : null;
+          if (!mappedGoalId) continue;
+          const collision = gc.id ? queryOne('SELECT id FROM goal_contributions WHERE id = ?', [gc.id]) : null;
+          const targetId = collision || !gc.id ? makeFreshId('gc') : gc.id;
+          run(
+            `INSERT INTO goal_contributions (id, goal_id, user_id, amount_minor, date, notes, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [targetId, mappedGoalId, userId, gc.amount_minor || 0, gc.date || now.slice(0, 10), gc.notes || null, gc.created_at || now]
+          );
         }
       }
     });
 
     res.json({ message: 'Backup restored successfully.' });
   } catch (err: any) {
-    console.error('Error restoring backup:', err);
+    console.error('Error restoring backup:', err?.message || err);
     res.status(500).json({ error: 'Could not restore backup. Your existing data remains safe.' });
   }
 });
@@ -839,23 +953,25 @@ dataRouter.post('/clear-transactions', requireAuth, (req: AuthenticatedRequest, 
     transaction(() => {
       // Delete split records
       run(
-        `DELETE FROM transaction_splits 
+        `DELETE FROM transaction_splits
          WHERE transaction_id IN (SELECT id FROM transactions WHERE user_id = ?)`,
         [userId]
       );
+      // Delete user receipts attached to transactions
+      run('DELETE FROM receipts WHERE user_id = ?', [userId]);
       // Delete transactions
       run('DELETE FROM transactions WHERE user_id = ?', [userId]);
 
       // Reset account balances to initial balance
       run(
-        `UPDATE accounts 
-         SET current_balance_minor = initial_balance_minor, updated_at = ? 
+        `UPDATE accounts
+         SET current_balance_minor = initial_balance_minor, updated_at = ?
          WHERE user_id = ?`,
         [new Date().toISOString(), userId]
       );
     });
 
-    res.json({ message: 'All demo and preloaded transactions have been cleared. Workspace is ready for real expenses.' });
+    res.json({ message: 'All transactions and attached receipts have been cleared. Workspace is ready for fresh entries.' });
   } catch (err) {
     console.error('Error clearing transactions:', err);
     res.status(500).json({ error: 'Could not clear transactions.' });

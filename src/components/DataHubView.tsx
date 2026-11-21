@@ -1,11 +1,12 @@
 /**
- * PRYORA Data Hub (Excel / CSV Import Wizard, Spreadsheet Exports & Sovereign Backups)
+ * PRYORA Data Hub (Excel / CSV Import Wizard, Exports, Backups & Account Controls)
  */
 
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { Account, Category } from '../types';
-import { apiRequest } from '../lib/api';
+import { apiRequest, getStoredToken } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import { ConfirmDialog } from './common/ConfirmDialog';
 import { SpreadsheetImportWizard } from './SpreadsheetImportWizard';
 import {
@@ -15,6 +16,7 @@ import {
   FileSpreadsheet,
   Loader2,
   Trash2,
+  UserX,
 } from 'lucide-react';
 
 interface DataHubViewProps {
@@ -30,18 +32,27 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
   onDataChanged,
   onNavigateToLedger,
 }) => {
+  const { isDemoUser, deleteAccount } = useAuth();
+
   // JSON restore
   const [restoring, setRestoring] = useState<boolean>(false);
   const [restoreResult, setRestoreResult] = useState<string | null>(null);
   const [pendingRestoreData, setPendingRestoreData] = useState<any | null>(null);
 
-  // Excel export loading
+  // Export status
   const [exportingExcel, setExportingExcel] = useState<boolean>(false);
+  const [exportingCsv, setExportingCsv] = useState<boolean>(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
-  // Clear demo data
+  // Clear transactions
   const [clearing, setClearing] = useState<boolean>(false);
   const [clearResult, setClearResult] = useState<string | null>(null);
   const [isConfirmingClear, setIsConfirmingClear] = useState<boolean>(false);
+
+  // Delete account
+  const [deletingAccount, setDeletingAccount] = useState<boolean>(false);
+  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
+  const [isConfirmingDeleteAccount, setIsConfirmingDeleteAccount] = useState<boolean>(false);
 
   const confirmClearTransactions = async () => {
     setIsConfirmingClear(false);
@@ -60,6 +71,20 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
     }
   };
 
+  const confirmDeleteAccount = async () => {
+    setDeletingAccount(true);
+    setDeleteAccountError(null);
+    try {
+      await deleteAccount();
+      setIsConfirmingDeleteAccount(false);
+    } catch (err: any) {
+      setDeleteAccountError(err.message || 'Could not delete your account right now.');
+      setIsConfirmingDeleteAccount(false);
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   const confirmRestoreDatabase = async () => {
     if (!pendingRestoreData) return;
     setRestoring(true);
@@ -69,16 +94,17 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
         body: JSON.stringify({ backupData: pendingRestoreData }),
       });
       setPendingRestoreData(null);
-      setRestoreResult(res.message || 'Restored successfully!');
+      setRestoreResult(res.message || 'Backup restored successfully.');
       onDataChanged();
     } catch (err: any) {
-      setRestoreResult(err.message || 'Could not restore database.');
+      setRestoreResult(err.message || 'Could not restore backup.');
     } finally {
       setRestoring(false);
     }
   };
 
   const handleDownloadBackup = async () => {
+    setExportError(null);
     try {
       const data = await apiRequest<any>('/api/data/export/json');
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -90,18 +116,20 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch {
-      window.location.href = '/api/data/export/json';
+    } catch (err: any) {
+      setExportError(err?.message || 'Could not download JSON backup.');
     }
   };
 
   const handleExportCsv = async () => {
+    setExportingCsv(true);
+    setExportError(null);
     try {
-      const token = localStorage.getItem('pryora_session_token');
+      const token = getStoredToken();
       const res = await fetch('/api/data/export/csv', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (!res.ok) throw new Error('Export failed');
+      if (!res.ok) throw new Error('Could not export CSV. Please ensure you are signed in.');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -111,24 +139,27 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch {
-      window.location.href = '/api/data/export/csv';
+    } catch (err: any) {
+      setExportError(err?.message || 'CSV export failed.');
+    } finally {
+      setExportingCsv(false);
     }
   };
 
   const handleExportExcel = async () => {
     setExportingExcel(true);
+    setExportError(null);
     try {
-      const token = localStorage.getItem('pryora_session_token');
+      const token = getStoredToken();
       const res = await fetch('/api/data/export/csv', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (!res.ok) throw new Error('Could not export ledger');
+      if (!res.ok) throw new Error('Could not export Excel file. Please ensure you are signed in.');
       const csvText = await res.text();
       const wb = XLSX.read(csvText, { type: 'string' });
       XLSX.writeFile(wb, `pryora_transactions_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    } catch (err) {
-      console.error('Excel export failed:', err);
+    } catch (err: any) {
+      setExportError(err?.message || 'Excel export failed.');
     } finally {
       setExportingExcel(false);
     }
@@ -155,11 +186,11 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
     <div className="space-y-6 pb-12">
       {/* Top Bar */}
       <div>
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-          Data Hub & Sovereign Ownership
+        <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          Data Hub & Portability
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          Zero vendor lock-in. Import multi-sheet Excel workbooks or bank CSV statements, export spreadsheets, and manage full ledger backups.
+          Import Excel workbooks or bank CSV statements, export your records at any time, manage backups, or erase your account data.
         </p>
       </div>
 
@@ -171,8 +202,8 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
         onNavigateToLedger={onNavigateToLedger}
       />
 
-      {/* Secondary Modules: Exports, Sovereign JSON Backups & Workspace Reset */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Secondary Modules: Exports, Backups, Reset & Account Deletion */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card 1: Export Ledger (Excel .xlsx & CSV) */}
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between space-y-4">
           <div className="space-y-3">
@@ -182,46 +213,58 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Export Ledger Spreadsheet
+                  Export Transactions
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Excel (.xlsx) or RFC-4180 CSV
+                  Excel (.xlsx) or standard CSV
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Download all recorded transactions with dates, payees, categories, accounts, and formatted amounts for Excel analysis or tax preparation.
+              Download your recorded transactions with dates, merchants, categories, accounts, and amounts for spreadsheet review or tax preparation.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 pt-1">
-            <button
-              type="button"
-              disabled={exportingExcel}
-              onClick={handleExportExcel}
-              className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
-            >
-              {exportingExcel ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Download className="w-3.5 h-3.5" />
-              )}
-              <span>Export Excel (.xlsx)</span>
-            </button>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
+              <button
+                type="button"
+                disabled={exportingExcel}
+                onClick={handleExportExcel}
+                className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 disabled:opacity-50"
+              >
+                {exportingExcel ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span>Export Excel (.xlsx)</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export CSV</span>
-            </button>
+              <button
+                type="button"
+                disabled={exportingCsv}
+                onClick={handleExportCsv}
+                className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 disabled:opacity-50"
+              >
+                {exportingCsv ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span>Export CSV</span>
+              </button>
+            </div>
+            {exportError && (
+              <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs rounded-xl border border-rose-200 dark:border-rose-900/50">
+                {exportError}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Card 2: Complete Sovereign JSON Backup */}
+        {/* Card 2: Complete JSON Backup & Restore */}
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between space-y-4">
           <div className="space-y-3">
             <div className="flex items-center gap-2.5">
@@ -230,16 +273,16 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Sovereign JSON Backup
+                  Full JSON Backup & Restore
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Portable snapshot of your entire ledger
+                  Portable snapshot of your entire workspace
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Back up or restore your complete financial workspace: accounts, categories, transactions, split allocations, recurring rules, and goals.
+              Save or restore your accounts, categories, transactions, split allocations, budgets, recurring rules, and savings goals in one JSON file.
             </p>
           </div>
 
@@ -274,25 +317,25 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
           </div>
         </div>
 
-        {/* Card 3: Clean Slate / Reset Dummy Records */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-rose-200/80 dark:border-rose-900/40 shadow-xs flex flex-col justify-between space-y-4">
+        {/* Card 3: Clear Transactions */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-amber-200/80 dark:border-amber-900/40 shadow-xs flex flex-col justify-between space-y-4">
           <div className="space-y-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-700 dark:text-rose-400 flex items-center justify-center border border-rose-500/20">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center border border-amber-500/20">
                 <Trash2 className="w-4 h-4" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Clean Slate / Reset Records
+                  Reset Transactions
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Clear sample transactions & reset balances
+                  Clear transactions while keeping accounts & categories
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Wipe pre-populated demo transactions while keeping your accounts and categories intact, resetting account balances to starting values.
+              Remove all recorded transactions and attached receipts, resetting account balances back to their starting amounts.
             </p>
           </div>
 
@@ -302,7 +345,7 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
               type="button"
               onClick={() => setIsConfirmingClear(true)}
               disabled={clearing}
-              className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 whitespace-nowrap shrink-0"
+              className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 whitespace-nowrap shrink-0"
             >
               {clearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
               <span>{clearing ? 'Clearing Records...' : 'Clear All Transactions'}</span>
@@ -315,14 +358,58 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
             )}
           </div>
         </div>
+
+        {/* Card 4: Permanent Account & Data Deletion */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-rose-200/80 dark:border-rose-900/40 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-700 dark:text-rose-400 flex items-center justify-center border border-rose-500/20">
+                <UserX className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Delete Account & Data
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Permanently remove your profile and all records
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              {isDemoUser
+                ? 'You are viewing the shared Demo Workspace. Permanent deletion is disabled for the demo account.'
+                : 'Permanently delete your PRYORA account along with all accounts, transactions, receipts, budgets, recurring rules, and goals. Export a JSON backup first if you want a copy.'}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <button
+              id="btn_delete_account"
+              type="button"
+              onClick={() => setIsConfirmingDeleteAccount(true)}
+              disabled={deletingAccount || isDemoUser}
+              className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-45 disabled:cursor-not-allowed whitespace-nowrap shrink-0"
+            >
+              {deletingAccount ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
+              <span>{deletingAccount ? 'Deleting Account...' : 'Delete My Account'}</span>
+            </button>
+
+            {deleteAccountError && (
+              <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs rounded-xl border border-rose-200 dark:border-rose-900/50">
+                {deleteAccountError}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Confirmation Dialog for Clearing Transactions */}
       <ConfirmDialog
         isOpen={isConfirmingClear}
         title="Clear All Transactions"
-        message="Are you sure you want to clear all transactions and reset account balances? This gives you a clean slate for real expense tracking. Accounts and categories will be kept."
-        confirmLabel="Wipe Transactions"
+        message="Are you sure you want to clear all transactions and receipts and reset account balances to their starting values? Accounts and categories will be kept."
+        confirmLabel="Clear Transactions"
         isLoading={clearing}
         onConfirm={confirmClearTransactions}
         onCancel={() => {
@@ -330,12 +417,25 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
         }}
       />
 
+      {/* Confirmation Dialog for Deleting Account */}
+      <ConfirmDialog
+        isOpen={isConfirmingDeleteAccount}
+        title="Permanently Delete Account"
+        message="This will permanently erase your PRYORA account, transactions, receipts, accounts, budgets, goals, and recurring rules. This action cannot be undone."
+        confirmLabel="Delete Everything"
+        isLoading={deletingAccount}
+        onConfirm={confirmDeleteAccount}
+        onCancel={() => {
+          if (!deletingAccount) setIsConfirmingDeleteAccount(false);
+        }}
+      />
+
       {/* Confirmation Dialog for Restoring Backup */}
       <ConfirmDialog
         isOpen={!!pendingRestoreData}
-        title="Restore Database Backup"
-        message="Are you sure you want to restore the database from this backup? Existing records will be merged with the contents of the backup."
-        confirmLabel="Restore Database"
+        title="Restore JSON Backup"
+        message="Restore your workspace from this backup file? Missing accounts, categories, transactions, budgets, recurring rules, and goals will be imported safely into your account."
+        confirmLabel="Restore Backup"
         isDestructive={false}
         isLoading={restoring}
         onConfirm={confirmRestoreDatabase}

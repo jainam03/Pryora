@@ -40,8 +40,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Accounts step state - clean starting accounts without forced dummy amounts!
+  // Accounts step state - clean starting accounts for Indian everyday tracking
   const [accounts, setAccounts] = useState<AccountDraft[]>([
+    { name: 'Bank Account / UPI', type: 'checking', balance: '0', institution: 'Primary Bank' },
     { name: 'Cash Wallet', type: 'cash', balance: '0', institution: 'Cash' },
   ]);
 
@@ -63,8 +64,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
     try {
       const finalAccounts = useDefaults
         ? [
+            { name: 'Bank Account / UPI', type: 'checking', balance: 0, institution: 'Primary Bank' },
             { name: 'Cash Wallet', type: 'cash', balance: 0, institution: 'Cash' },
-            { name: 'Primary Checking', type: 'checking', balance: 0, institution: 'Bank' },
           ]
         : accounts.map(a => ({
             name: a.name.trim() || 'Main Account',
@@ -108,12 +109,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-sm tracking-wider text-white">PRYORA</span>
-                <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  Quick Setup
+                <span className="text-[11px] text-slate-400 font-medium">
+                  · Quick Setup
                 </span>
               </div>
               <h2 className="text-xs sm:text-sm font-medium text-slate-300 mt-0.5">
-                {step === 1 ? 'Step 1: Choose Your Currency' : 'Step 2: Your Starting Account'}
+                {step === 1 ? 'Step 1 of 2: Choose your currency' : 'Step 2 of 2: Set up your everyday accounts'}
               </h2>
             </div>
           </div>
@@ -124,9 +125,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
             disabled={isSubmitting}
             onClick={() => handleFinish(true)}
             className="text-xs text-slate-400 hover:text-emerald-400 font-semibold px-2.5 py-1.5 rounded-lg hover:bg-slate-800/80 transition-all flex items-center gap-1.5"
-            title="Skip setup and start tracking expenses immediately"
+            title="Skip setup and start with default accounts"
           >
-            <span>Skip to Tracker</span>
+            <span>Skip Setup</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -146,9 +147,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
         {step === 1 && (
           <div className="p-6 sm:p-8 space-y-6">
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">What currency do you spend in?</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Which currency do you manage day to day?</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Your expenses, balances, and reports will be recorded in this currency.
+                INR (₹) is selected by default. You can change this later from your workspace settings.
               </p>
             </div>
 
@@ -191,7 +192,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
                 onClick={() => setStep(2)}
                 className="flex items-center gap-1.5 bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-semibold text-xs transition-colors shadow-sm"
               >
-                Next: Account Setup <ArrowRight className="w-3.5 h-3.5" />
+                Next: Everyday Accounts <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -201,9 +202,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
         {step === 2 && (
           <div className="p-6 sm:p-8 space-y-6">
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Configure your spending account</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Where do you usually spend from?</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Enter your initial balance if you'd like, or leave as 0.00 to start fresh.
+                No bank logins required — just name the accounts you want to track (e.g. HDFC UPI, Cash, or a Credit Card). Leave balances at 0 if you prefer starting fresh.
               </p>
             </div>
 
@@ -233,8 +234,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
                       }}
                       className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
+                      <option value="checking">Bank / UPI</option>
                       <option value="cash">Cash</option>
-                      <option value="checking">Bank / Checking</option>
                       <option value="savings">Savings</option>
                       <option value="credit_card">Credit Card</option>
                     </select>
@@ -243,7 +244,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onCompleted })
                   <div className="flex-1">
                     <input
                       type="text"
-                      placeholder="Account Name (e.g. Cash, HDFC, Chase)"
+                      placeholder="Account Name (e.g. HDFC UPI, SBI Savings, Cash)"
                       value={acc.name}
                       onChange={e => {
                         const next = [...accounts];
