@@ -299,7 +299,8 @@ function isQueueableEndpoint(method: string, endpoint: string): boolean {
     endpoint.startsWith('/api/auth/') ||
     endpoint.startsWith('/api/data/restore') ||
     endpoint.startsWith('/api/data/clear-transactions') ||
-    endpoint.startsWith('/api/categories/suggest')
+    endpoint.startsWith('/api/categories/suggest') ||
+    endpoint.startsWith('/api/feedback')
   ) {
     return false;
   }

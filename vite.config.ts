@@ -21,7 +21,7 @@ export default defineConfig(() => {
         ],
         manifest: {
           id: '/',
-          name: 'PRYORA — Personal Finance',
+          name: 'PRYORA',
           short_name: 'PRYORA',
           description:
             'Understand your money. Understand your habits. Track expenses, organise accounts, plan budgets, and monitor savings goals.',

@@ -169,6 +169,7 @@ export function deleteUserAccountData(userId: string): void {
     run('DELETE FROM categories WHERE user_id = ?', [userId]);
     run('DELETE FROM accounts WHERE user_id = ?', [userId]);
     run('DELETE FROM audit_logs WHERE user_id = ?', [userId]);
+    run('UPDATE feedback_submissions SET user_id = NULL WHERE user_id = ?', [userId]);
     run('DELETE FROM users WHERE id = ?', [userId]);
   });
 }
@@ -329,6 +330,19 @@ function runMigrations(db: SqlJsDatabase): void {
       timestamp TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS feedback_submissions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      reply_email TEXT,
+      category TEXT NOT NULL DEFAULT 'general',
+      subject TEXT NOT NULL DEFAULT '',
+      rating INTEGER,
+      message TEXT NOT NULL,
+      page_context TEXT,
+      email_delivered INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
     -- Create indexes for speed and integrity
     CREATE INDEX IF NOT EXISTS idx_tx_user_date ON transactions(user_id, date);
     CREATE INDEX IF NOT EXISTS idx_tx_account ON transactions(account_id);
@@ -338,7 +352,15 @@ function runMigrations(db: SqlJsDatabase): void {
     CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_id);
     CREATE INDEX IF NOT EXISTS idx_recurring_user ON recurring_rules(user_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
+    CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback_submissions(created_at);
   `);
+
+  // Safe additive migration for existing databases created before subject column existed
+  try {
+    db.run(`ALTER TABLE feedback_submissions ADD COLUMN subject TEXT NOT NULL DEFAULT ''`);
+  } catch {
+    // Column already exists
+  }
 }
 
 /**

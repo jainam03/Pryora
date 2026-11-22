@@ -20,6 +20,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { TransactionModal } from './components/TransactionModal';
 import { ReceiptViewerModal } from './components/ReceiptViewerModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { FeedbackWidget } from './components/FeedbackWidget';
 import { Account, Category, DashboardData, Transaction } from './types';
 import { apiRequest, flushOfflineQueue } from './lib/api';
 import { safeGetItem, safeSetItem } from './lib/storage';
@@ -156,6 +157,17 @@ const MainApp: React.FC = () => {
     );
   }
 
+  const TAB_LABELS: Record<TabType, string> = {
+    dashboard: 'Overview Dashboard',
+    transactions: 'Ledger & Transactions',
+    accounts: 'Accounts',
+    budgets: 'Budgets',
+    subscriptions: 'Subscriptions & Bills',
+    goals: 'Goals',
+    analytics: 'Analytics',
+    data: 'Data Hub',
+  };
+
   // 1. Landing Page View (Primary entry point)
   if (currentView === 'landing') {
     return (
@@ -178,6 +190,7 @@ const MainApp: React.FC = () => {
             }
           }}
         />
+        <FeedbackWidget screenContext="Landing Page" />
         <OfflineIndicator onRetrySync={syncOfflineAndLoadData} />
       </>
     );
@@ -191,6 +204,7 @@ const MainApp: React.FC = () => {
           initialMode={authInitialMode}
           onBackToLanding={() => setCurrentView('landing')}
         />
+        <FeedbackWidget screenContext={authInitialMode === 'signup' ? 'Create Account' : 'Sign In'} />
         <OfflineIndicator onRetrySync={syncOfflineAndLoadData} />
       </>
     );
@@ -199,9 +213,12 @@ const MainApp: React.FC = () => {
   // 3. User unauthenticated in app mode fallback
   if (!user) {
     return (
-      <AuthScreen
-        onBackToLanding={() => setCurrentView('landing')}
-      />
+      <>
+        <AuthScreen
+          onBackToLanding={() => setCurrentView('landing')}
+        />
+        <FeedbackWidget screenContext="Sign In" />
+      </>
     );
   }
 
@@ -216,6 +233,7 @@ const MainApp: React.FC = () => {
             loadAllData();
           }}
         />
+        <FeedbackWidget screenContext="Quick Setup Onboarding" />
       </div>
     );
   }
@@ -254,7 +272,7 @@ const MainApp: React.FC = () => {
       />
 
       {/* Main Content Area (extra bottom padding on mobile for floating dock) */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-24 lg:pb-12 relative z-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 pb-24 lg:pb-12 relative z-10">
         {activeTab === 'dashboard' && (
           <DashboardView
             data={dashboardData}
@@ -327,6 +345,9 @@ const MainApp: React.FC = () => {
         merchantName={receiptMerchant}
         onClose={() => setReceiptTxId(null)}
       />
+
+      {/* Global Platform Feedback Launcher & Dialog */}
+      <FeedbackWidget screenContext={TAB_LABELS[activeTab] || 'Workspace'} hasMobileDock={true} />
 
       {/* Live Connectivity & Offline Mode Banner */}
       <OfflineIndicator onRetrySync={syncOfflineAndLoadData} />

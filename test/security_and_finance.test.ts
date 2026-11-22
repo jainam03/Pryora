@@ -473,4 +473,66 @@ describe('PRYORA Security & Financial Integration Suite', () => {
     assert.equal(advanceDate('2024-02-29', 'yearly'), '2025-02-28');
     assert.equal(advanceDate('2026-10-01', 'weekly'), '2026-10-08');
   });
+
+  test('Global feedback endpoint validates email, subject, and message, stores submissions, and restricts inbox reads to the platform owner', async () => {
+    // Missing email rejected
+    const missingEmail = await apiJson('/api/feedback', {
+      method: 'POST',
+      body: { subject: 'Great app', message: 'Love the clean dashboard layout!' },
+    });
+    assert.equal(missingEmail.status, 400);
+
+    // Missing subject rejected
+    const missingSubject = await apiJson('/api/feedback', {
+      method: 'POST',
+      body: { email: 'riya@example.com', message: 'Love the clean dashboard layout!' },
+    });
+    assert.equal(missingSubject.status, 400);
+
+    // Short message rejected
+    const tooShort = await apiJson('/api/feedback', {
+      method: 'POST',
+      body: { email: 'riya@example.com', subject: 'Quick note', message: 'hi' },
+    });
+    assert.equal(tooShort.status, 400);
+
+    // Header injection attempt in email rejected
+    const badEmail = await apiJson('/api/feedback', {
+      method: 'POST',
+      body: {
+        email: 'user@example.com\r\nBcc: attacker@evil.com',
+        subject: 'Header test',
+        message: 'Testing email header validation on feedback form.',
+      },
+    });
+    assert.equal(badEmail.status, 400);
+
+    // Valid feedback succeeds and stores cleanly
+    const valid = await apiJson('/api/feedback', {
+      method: 'POST',
+      body: {
+        email: 'riya@example.com',
+        subject: 'Dashboard & CSV importer feedback',
+        message: 'Love the clean INR dashboard and Excel importer!',
+        pageContext: 'Overview Dashboard',
+      },
+    });
+    assert.equal(valid.status, 201);
+    assert.equal(valid.data.ok, true);
+    assert.ok(typeof valid.data.id === 'string' && valid.data.id.startsWith('fb_'));
+
+    // Unauthenticated read of feedback submissions is blocked (401)
+    const unauthRead = await apiJson('/api/feedback');
+    assert.equal(unauthRead.status, 401);
+
+    // Non-owner authenticated user read is blocked (403)
+    const regUser = await apiJson('/api/auth/register', {
+      method: 'POST',
+      body: { email: 'regular-feedback-user@example.com', password: 'StrongPassword123!' },
+    });
+    const nonOwnerRead = await apiJson('/api/feedback', { token: regUser.data.token });
+    assert.equal(nonOwnerRead.status, 403);
+  });
 });
+
+

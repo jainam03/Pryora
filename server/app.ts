@@ -18,6 +18,7 @@ import { recurringRouter } from './routes/recurring.js';
 import { goalsRouter } from './routes/goals.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { dataRouter } from './routes/data.js';
+import { feedbackRouter } from './routes/feedback.js';
 import { securityHeaders, apiCors, safeErrorHandler } from './middleware/security.js';
 
 let appInstance: Express | null = null;
@@ -71,6 +72,7 @@ export async function getExpressApp(): Promise<Express> {
   app.use('/api/goals', goalsRouter);
   app.use('/api/analytics', analyticsRouter);
   app.use('/api/data', dataRouter);
+  app.use('/api/feedback', feedbackRouter);
 
   // 5. Centralized Sanitized Error Handler
   app.use(safeErrorHandler);

@@ -28,6 +28,7 @@ import {
   Moon,
   Menu,
   X,
+  Home,
 } from 'lucide-react';
 
 export type TabType = 
@@ -81,65 +82,66 @@ export const Navigation: React.FC<NavigationProps> = ({
   return (
     <>
       {/* Top Header Bar */}
-      <header className="sticky top-0 z-40 bg-white/75 dark:bg-slate-950/75 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/10 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            
-            {/* Left: Brand Logo & Desktop Navigation */}
-            <div className="flex items-center gap-6">
-              <button
-                type="button"
-                onClick={() => handleTabSelect('dashboard')}
-                className="flex items-center gap-2.5 text-left focus:outline-none group"
-              >
-                <div className="w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 font-black text-sm flex items-center justify-center tracking-tighter shadow-sm shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-                  P
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-wider text-slate-900 dark:text-white">PRYORA</span>
-                </div>
-              </button>
+      <header className="sticky top-0 z-40 bg-white/85 dark:bg-slate-950/85 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/90 transition-colors">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between gap-3 xl:gap-5 h-16">
+            {/* Left: Brand Logo */}
+            <button
+              type="button"
+              onClick={() => handleTabSelect('dashboard')}
+              className="flex items-center gap-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg group shrink-0 whitespace-nowrap"
+            >
+              <span className="w-8 h-8 rounded-lg bg-emerald-500 text-slate-950 font-display font-extrabold text-sm flex items-center justify-center tracking-tight shadow-xs shadow-emerald-500/20">
+                P
+              </span>
+              <span className="font-display font-bold text-base tracking-tight text-slate-900 dark:text-white">
+                PRYORA
+              </span>
+            </button>
 
-              {/* Desktop Navigation Links */}
-              <nav className="hidden lg:flex items-center gap-1 p-1 bg-slate-100/70 dark:bg-slate-900/60 rounded-xl border border-slate-200/60 dark:border-white/5">
-                {allNavItems.map(item => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      id={`nav_tab_${item.id}`}
-                      type="button"
-                      onClick={() => handleTabSelect(item.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                        isActive
-                          ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/40'
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
+            {/* Center: Desktop Navigation Rail (strictly single-line, horizontally scrollable fallback on tight screens) */}
+            <nav
+              aria-label="Workspace navigation"
+              className="hidden lg:flex items-center gap-0.5 p-1 bg-slate-100/90 dark:bg-slate-900/90 rounded-xl border border-slate-200/80 dark:border-slate-800 min-w-0 overflow-x-auto no-scrollbar"
+            >
+              {allNavItems.map(item => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    id={`nav_tab_${item.id}`}
+                    type="button"
+                    onClick={() => handleTabSelect(item.id)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                      isActive
+                        ? 'bg-white dark:bg-slate-800 text-slate-950 dark:text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
 
-            {/* Right Header Actions */}
-            <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Right Header Actions — strictly single-line, zero cramping */}
+            <div className="flex items-center gap-2 shrink-0">
               {/* Quick Record Button */}
               <button
                 id="btn_header_add_transaction"
                 type="button"
                 onClick={onOpenTransactionModal}
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-sm hover:shadow-emerald-500/20 active:scale-95"
+                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 active:scale-[0.98]"
               >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
-                <span className="hidden sm:inline">Log Expense</span>
+                <Plus className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
+                <span className="hidden sm:inline 2xl:hidden">Expense</span>
+                <span className="hidden 2xl:inline">Log Expense</span>
               </button>
 
               {/* Install PWA Button (Desktop Header) */}
-              <div className="hidden md:block">
+              <div className="hidden xl:block shrink-0">
                 <PWAInstallButton variant="header" />
               </div>
 
@@ -148,47 +150,46 @@ export const Navigation: React.FC<NavigationProps> = ({
                 id="btn_theme_toggle"
                 type="button"
                 onClick={toggleTheme}
-                title={`Current: ${resolvedTheme === 'dark' ? 'Dark' : 'Light'} mode. Click to toggle.`}
+                title={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
                 aria-label="Toggle light and dark mode"
-                className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/60 dark:border-white/10 transition-colors"
+                className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white bg-slate-100/80 dark:bg-slate-900 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 transition-colors shrink-0"
               >
                 {resolvedTheme === 'dark' ? (
-                  <Sun className="w-4 h-4 text-amber-400 transition-transform rotate-0 hover:rotate-45" />
+                  <Sun className="w-4 h-4 text-amber-400" />
                 ) : (
-                  <Moon className="w-4 h-4 text-slate-700 transition-transform rotate-0 hover:-rotate-12" />
+                  <Moon className="w-4 h-4 text-slate-700" />
                 )}
               </button>
 
-              {/* Home Link & Demo Mode Indicator (Desktop) */}
-              <div className="hidden xl:flex items-center gap-2">
-                {onNavigateLanding && (
-                  <button
-                    type="button"
-                    onClick={onNavigateLanding}
-                    title="View PRYORA Home Page"
-                    className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-2.5 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors"
-                  >
-                    Home
-                  </button>
-                )}
-                {isDemoUser && (
-                  <div
-                    title="You are viewing the shared Demo Workspace with sample INR data. Sign out and create your own account to track your personal finances."
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold"
-                  >
-                    <Database className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-                    <span>Demo Mode</span>
-                  </div>
-                )}
-              </div>
+              {/* Home Page Icon Button (Desktop) */}
+              {onNavigateLanding && (
+                <button
+                  type="button"
+                  onClick={onNavigateLanding}
+                  title="PRYORA Home Page"
+                  aria-label="PRYORA Home Page"
+                  className="hidden lg:inline-flex w-9 h-9 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                >
+                  <Home className="w-4 h-4" />
+                </button>
+              )}
+
+              {isDemoUser && (
+                <span
+                  title="Viewing the shared Demo Workspace with sample INR data."
+                  className="hidden xl:inline-flex items-center px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11px] font-semibold whitespace-nowrap shrink-0"
+                >
+                  Demo
+                </span>
+              )}
 
               {/* User Profile & Sign Out */}
-              <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
-                <div className="flex flex-col items-end text-right">
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
+              <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
+                <div className="flex flex-col items-end text-right leading-tight">
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[104px]">
                     {user?.display_name || user?.email}
                   </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                     {user?.currency || 'INR'}
                   </span>
                 </div>
@@ -198,7 +199,8 @@ export const Navigation: React.FC<NavigationProps> = ({
                   type="button"
                   onClick={logout}
                   title="Sign out of PRYORA"
-                  className="text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                  aria-label="Sign out of PRYORA"
+                  className="w-9 h-9 inline-flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -208,12 +210,11 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-white/10"
+                className="lg:hidden w-9 h-9 inline-flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 shrink-0"
                 aria-label="Toggle navigation menu"
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
-
             </div>
           </div>
         </div>

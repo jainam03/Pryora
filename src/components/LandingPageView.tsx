@@ -11,6 +11,7 @@ import React, { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { PWAInstallButton } from './PWAInstallButton';
+import { openFeedbackModal } from './FeedbackWidget';
 import {
   ArrowRight,
   Search,
@@ -335,12 +336,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </a>
           </nav>
 
-          {/* Zone 3: Theme Toggle + Single Primary Action */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Zone 3: Theme Toggle, Sign In (when signed out) & Primary Action */}
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
             <button
               type="button"
               onClick={toggleTheme}
-              className="w-10 h-10 inline-flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white rounded-lg hover:bg-slate-200/70 dark:hover:bg-slate-800/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="w-9 h-9 inline-flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white rounded-lg hover:bg-slate-200/70 dark:hover:bg-slate-800/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 shrink-0"
               aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {resolvedTheme === 'dark' ? (
@@ -349,6 +350,16 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <Moon className="w-4 h-4" />
               )}
             </button>
+
+            {!user && (
+              <button
+                type="button"
+                onClick={() => onOpenAuth('signin')}
+                className="hidden sm:inline-flex text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white px-2.5 py-2 transition-colors whitespace-nowrap shrink-0"
+              >
+                Sign in
+              </button>
+            )}
 
             <button
               type="button"
@@ -366,18 +377,18 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         {/* ========================================================
             SECTION 1 — HERO & INTERACTIVE PRODUCT PREVIEW
            ======================================================== */}
-        <section className="pt-14 pb-16 sm:pt-20 sm:pb-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="pt-9 pb-14 sm:pt-12 sm:pb-16 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
-            {/* Unboxed editorial metadata line (zero pills, zero decorative dots) */}
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-4">
+            {/* Unboxed editorial metadata line */}
+            <p className="text-xs sm:text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-3">
               Public Early Access · Personal finance built for India
             </p>
 
             {/* Primary Headline */}
             <h1
-              className="font-display font-bold tracking-tight text-slate-950 dark:text-white mb-6"
+              className="font-display font-bold tracking-tight text-slate-950 dark:text-white mb-4"
               style={{
-                fontSize: 'clamp(2.25rem, 4.6vw, 3.75rem)',
+                fontSize: 'clamp(2.25rem, 4.4vw, 3.5rem)',
                 lineHeight: 1.08,
                 textWrap: 'balance',
               }}
@@ -386,7 +397,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </h1>
 
             {/* Value Proposition */}
-            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto mb-8">
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl mx-auto mb-6">
               Track your expenses, organise your finances and discover the spending patterns shaping
               your financial life.
             </p>
@@ -396,7 +407,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <button
                 type="button"
                 onClick={handlePrimaryStart}
-                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm px-6 py-3 rounded-lg inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
+                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm px-6 py-2.5 rounded-lg inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
               >
                 <span>{user ? 'Go to Dashboard' : 'Start Managing Your Money'}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -406,7 +417,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 type="button"
                 onClick={handleLaunchDemo}
                 disabled={demoLoading}
-                className="w-full sm:w-auto bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 font-semibold text-sm px-6 py-3 rounded-lg inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60"
+                className="w-full sm:w-auto bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 font-semibold text-sm px-6 py-2.5 rounded-lg inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60"
               >
                 <PlayCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>{demoLoading ? 'Opening Demo...' : 'Explore Live Demo'}</span>
@@ -415,26 +426,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <PWAInstallButton variant="hero" />
             </div>
 
-            {!user && (
-              <div className="mb-6">
-                <button
-                  type="button"
-                  onClick={() => onOpenAuth('signin')}
-                  className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white underline underline-offset-4 transition-colors"
-                >
-                  Already have an account? Sign in
-                </button>
-              </div>
-            )}
-
-            {/* Quiet Unboxed Grounding Line */}
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            {/* Quiet Unboxed Grounding Line — concise single-line rhythm on desktop */}
+            <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
               <span>No bank passwords required</span>
-              <span aria-hidden="true">·</span>
-              <span>Excel & CSV statement import</span>
-              <span aria-hidden="true">·</span>
-              <span>INR & multi-currency support</span>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true" className="hidden sm:inline">·</span>
+              <span>Excel & CSV import</span>
+              <span aria-hidden="true" className="hidden sm:inline">·</span>
               <span>Export or delete anytime</span>
             </div>
           </div>
@@ -444,7 +441,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
              ======================================================== */}
           <div
             id="preview"
-            className="mt-12 sm:mt-14 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden"
+            className="mt-8 sm:mt-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden"
           >
             {/* Preview Toolbar */}
             <div className="px-4 sm:px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1484,6 +1481,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <a href="#faq" className="hover:text-slate-950 dark:hover:text-white transition-colors">
               FAQ
             </a>
+            <button
+              type="button"
+              onClick={openFeedbackModal}
+              className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+            >
+              Send Feedback
+            </button>
           </div>
         </div>
       </footer>

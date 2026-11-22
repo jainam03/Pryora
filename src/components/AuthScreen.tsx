@@ -11,6 +11,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
+  ArrowLeft,
   ArrowRight,
   Lock,
   Mail,
@@ -113,45 +114,54 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-10 sm:px-6 lg:px-8 text-white relative overflow-hidden font-sans">
-      {/* Subtle ambient depth */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[560px] h-[360px] bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8 text-slate-900 dark:text-white relative overflow-hidden font-sans transition-colors">
+      {/* Header Branding — aligned to card width with symmetric brand lockup */}
+      <div className="mx-auto w-full max-w-md relative z-10">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div className="flex justify-start">
+            {onBackToLanding && (
+              <button
+                type="button"
+                onClick={onBackToLanding}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors whitespace-nowrap py-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 shrink-0" />
+                <span>Home</span>
+              </button>
+            )}
+          </div>
 
-      {/* Header Branding */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center relative z-10 px-4">
-        {onBackToLanding && (
-          <button
-            type="button"
-            onClick={onBackToLanding}
-            className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-emerald-400 transition-colors"
-          >
-            <span>←</span>
-            <span>Back to PRYORA Home</span>
-          </button>
-        )}
-        <div className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-emerald-500 text-slate-950 font-black text-lg tracking-tighter mb-3 shadow-md shadow-emerald-500/20">
-          P
+          <div className="inline-flex items-center justify-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500 text-slate-950 font-display font-extrabold text-base flex items-center justify-center tracking-tight shadow-sm shadow-emerald-500/20 shrink-0">
+              P
+            </div>
+            <h1 className="font-display text-2xl font-extrabold tracking-tight text-slate-950 dark:text-white leading-none">
+              PRYORA
+            </h1>
+          </div>
+
+          <div aria-hidden="true" />
         </div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-white">PRYORA</h1>
-        <p className="mt-1 text-xs text-slate-400 font-medium">
+
+        <p className="mt-2.5 text-center text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
           Understand your money. Understand your habits.
         </p>
       </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0 relative z-10">
-        <div className="bg-slate-900 border border-slate-800 py-7 px-6 sm:px-8 shadow-xl rounded-3xl">
+      <div className="mt-6 mx-auto w-full max-w-md relative z-10">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 py-7 px-6 sm:px-8 shadow-sm dark:shadow-xl rounded-2xl">
           {/* Mode Tabs */}
-          <div className="grid grid-cols-2 gap-1 p-1 bg-slate-950/70 rounded-xl border border-slate-800 mb-5">
+          <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-950/70 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-5">
             <button
               type="button"
               onClick={() => {
                 setMode('signin');
                 setError(null);
               }}
-              className={`py-2 text-xs font-bold rounded-lg transition-colors ${
+              className={`py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${
                 mode === 'signin'
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white dark:bg-slate-800 text-slate-950 dark:text-white shadow-2xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               Sign In
@@ -162,10 +172,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 setMode('signup');
                 setError(null);
               }}
-              className={`py-2 text-xs font-bold rounded-lg transition-colors ${
+              className={`py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${
                 mode === 'signup'
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white dark:bg-slate-800 text-slate-950 dark:text-white shadow-2xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               Create Account
@@ -173,7 +183,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           </div>
 
           {error && (
-            <div className="mb-5 p-3 rounded-xl bg-rose-950/70 border border-rose-800/80 text-rose-200 text-xs leading-relaxed">
+            <div className="mb-5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-800/80 text-rose-700 dark:text-rose-200 text-xs leading-relaxed">
               {error}
             </div>
           )}
@@ -184,7 +194,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             type="button"
             onClick={handleGoogleSignIn}
             disabled={googleLoading || loading}
-            className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs flex items-center justify-center gap-2.5 transition-colors disabled:opacity-50"
+            className="w-full py-3 px-4 rounded-xl bg-slate-50 dark:bg-white hover:bg-slate-100 border border-slate-300 dark:border-transparent text-slate-900 font-bold text-xs flex items-center justify-center gap-2.5 transition-colors disabled:opacity-50"
           >
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -208,8 +218,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           </button>
 
           <div className="relative flex items-center justify-center my-5">
-            <div className="border-t border-slate-800 w-full" />
-            <span className="bg-slate-900 px-3 text-[10px] uppercase font-bold tracking-wider text-slate-500 absolute">
+            <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
+            <span className="bg-white dark:bg-slate-900 px-3 text-[11px] font-medium text-slate-500 absolute">
               or with email & password
             </span>
           </div>
@@ -219,19 +229,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               <div>
                 <label
                   htmlFor="input_auth_name"
-                  className="block text-xs font-semibold text-slate-300 mb-1.5"
+                  className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
                 >
                   Your Name (optional)
                 </label>
                 <div className="relative">
-                  <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <UserIcon className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     id="input_auth_name"
                     type="text"
                     placeholder="e.g. Riya Patel"
                     value={displayName}
                     onChange={e => setDisplayName(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-800/70 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-300 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
                   />
                 </div>
               </div>
@@ -240,12 +250,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             <div>
               <label
                 htmlFor="input_auth_email"
-                className="block text-xs font-semibold text-slate-300 mb-1.5"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
               >
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   id="input_auth_email"
                   type="email"
@@ -254,7 +264,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   placeholder="name@example.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-800/70 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-300 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
                 />
               </div>
             </div>
@@ -262,12 +272,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             <div>
               <label
                 htmlFor="input_auth_password"
-                className="block text-xs font-semibold text-slate-300 mb-1.5"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
               >
                 Password
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   id="input_auth_password"
                   type="password"
@@ -277,11 +287,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   placeholder={mode === 'signup' ? 'At least 8 characters' : 'Enter your password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-800/70 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-300 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                 />
               </div>
               {mode === 'signin' && (
-                <p className="mt-1.5 text-[11px] text-slate-500">
+                <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
                   Forgot password? Early Access accounts using Google Sign-In recover directly via Google. Self-serve email password reset is on our roadmap.
                 </p>
               )}
@@ -307,13 +317,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           </form>
 
           {/* Secondary options: Live Demo & Temporary Guest Workspace */}
-          <div className="mt-5 pt-4 border-t border-slate-800 space-y-2.5">
+          <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
             <button
               id="btn_quick_demo"
               type="button"
               onClick={handleQuickDemo}
               disabled={loading || googleLoading}
-              className="w-full py-2.5 px-3 rounded-xl border border-emerald-500/25 bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              className="w-full py-2.5 px-3 rounded-xl border border-emerald-200 dark:border-emerald-500/25 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100/80 dark:hover:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
             >
               <PlayCircle className="w-4 h-4" />
               <span>Explore Live Demo (Sample INR Data)</span>
@@ -324,18 +334,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               type="button"
               onClick={handleGuestStart}
               disabled={loading || googleLoading}
-              className="w-full py-2.5 px-3 rounded-xl bg-slate-800/70 hover:bg-slate-800 text-slate-300 text-xs font-medium flex items-center justify-center gap-2 transition-colors border border-slate-700/70 disabled:opacity-50"
+              className="w-full py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/70 hover:bg-slate-200/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center justify-center gap-2 transition-colors border border-slate-200 dark:border-slate-700/70 disabled:opacity-50"
             >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <Zap className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
               <span>Start Blank Guest Workspace (No Email)</span>
             </button>
           </div>
         </div>
 
         {/* Honest Security Footer */}
-        <div className="mt-5 flex items-center justify-center gap-3 text-[11px] text-slate-400">
+        <div className="mt-5 flex items-center justify-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
           <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> No bank passwords or account linking required
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500" /> No bank passwords or account linking required
           </span>
         </div>
       </div>
