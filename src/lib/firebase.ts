@@ -1,13 +1,35 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
+
+// Vite handles JSON imports statically.
+// During build/dev, import firebase-applet-config.json if present; otherwise fallback to empty object.
+const localJsonModules = import.meta.glob('../../firebase-applet-config.json', { eager: true });
+const configFromLocalJson: Record<string, any> =
+  (localJsonModules['../../firebase-applet-config.json'] as any)?.default ||
+  localJsonModules['../../firebase-applet-config.json'] ||
+  {};
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || configFromLocalJson.apiKey || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || configFromLocalJson.authDomain || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || configFromLocalJson.projectId || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || configFromLocalJson.storageBucket || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || configFromLocalJson.messagingSenderId || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || configFromLocalJson.appId || '',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || configFromLocalJson.measurementId || '',
+};
+
+const firestoreDatabaseId =
+  import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID ||
+  configFromLocalJson.firestoreDatabaseId ||
+  '(default)';
 
 // Initialize Firebase App
-export const app = initializeApp(firebaseConfig);
+export const app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
 
 // Initialize Firestore with explicit Database ID as required by Firebase skill
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app, firestoreDatabaseId);
 
 // Initialize Auth
 export const auth = getAuth(app);

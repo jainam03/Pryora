@@ -29,6 +29,11 @@ coverage/
 .env.local
 !.env.example
 
+# Firebase & Applet Local Configs
+firebase-applet-config.json
+firebase-blueprint.json
+!firebase-applet-config.example.json
+
 # Logs & Debugging
 logs
 *.log
