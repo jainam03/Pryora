@@ -18,7 +18,7 @@ import {
   setActiveApiUserId,
   clearOfflineUserData,
 } from '../lib/api';
-import { auth, googleProvider } from '../lib/firebase';
+import { auth, googleProvider, isFirebaseConfigured } from '../lib/firebase';
 import {
   signInWithPopup,
   signOut as fbSignOut,
@@ -87,29 +87,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async fbUser => {
-      setFirebaseUser(fbUser);
-      if (fbUser && !getStoredToken()) {
-        try {
-          const idToken = await fbUser.getIdToken();
-          const res = await apiRequest<{ token: string; user: User }>('/api/auth/firebase-login', {
-            method: 'POST',
-            body: JSON.stringify({ idToken }),
-          });
-          applyAuthenticatedSession(res.token, res.user);
+    let unsubscribe = () => {};
+    if (isFirebaseConfigured && auth) {
+      unsubscribe = onAuthStateChanged(auth, async fbUser => {
+        setFirebaseUser(fbUser);
+        if (fbUser && !getStoredToken()) {
+          try {
+            const idToken = await fbUser.getIdToken();
+            const res = await apiRequest<{ token: string; user: User }>('/api/auth/firebase-login', {
+              method: 'POST',
+              body: JSON.stringify({ idToken }),
+            });
+            applyAuthenticatedSession(res.token, res.user);
 
-          await createOrUpdateUserProfile({
-            uid: fbUser.uid,
-            email: fbUser.email,
-            displayName: fbUser.displayName,
-            photoURL: fbUser.photoURL,
-          });
-        } catch (err) {
-          console.error('Firebase session synchronization error:', err);
+            await createOrUpdateUserProfile({
+              uid: fbUser.uid,
+              email: fbUser.email,
+              displayName: fbUser.displayName,
+              photoURL: fbUser.photoURL,
+            });
+          } catch (err) {
+            console.error('Firebase session synchronization error:', err);
+          }
         }
-      }
-      setIsLoading(false);
-    });
+        setIsLoading(false);
+      });
+    }
 
     refreshUser();
 
@@ -128,6 +131,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshUser, applyAuthenticatedSession]);
 
   const loginWithGoogle = async () => {
+    if (!isFirebaseConfigured || !auth) {
+      throw new Error('Google Sign-In is not configured. Please set up Firebase environment variables.');
+    }
     setIsLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);

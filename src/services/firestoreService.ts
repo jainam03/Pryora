@@ -7,7 +7,7 @@
  */
 
 import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, isFirebaseConfigured } from '../lib/firebase';
 
 export async function createOrUpdateUserProfile(user: {
   uid: string;
@@ -15,6 +15,7 @@ export async function createOrUpdateUserProfile(user: {
   displayName: string | null;
   photoURL: string | null;
 }): Promise<void> {
+  if (!isFirebaseConfigured || !db) return;
   try {
     const userRef = doc(db, 'users', user.uid);
     const snap = await getDoc(userRef);

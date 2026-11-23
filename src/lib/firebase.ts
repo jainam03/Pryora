@@ -25,14 +25,24 @@ const firestoreDatabaseId =
   configFromLocalJson.firestoreDatabaseId ||
   '(default)';
 
-// Initialize Firebase App
-export const app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
+// Validate if API Key exists and is not a placeholder
+export const isFirebaseConfigured = Boolean(
+  firebaseConfig.apiKey &&
+  firebaseConfig.apiKey.trim() !== '' &&
+  firebaseConfig.apiKey !== 'your-firebase-api-key' &&
+  !firebaseConfig.apiKey.includes(' ')
+);
 
-// Initialize Firestore with explicit Database ID as required by Firebase skill
-export const db = getFirestore(app, firestoreDatabaseId);
+// Initialize Firebase App conditionally to prevent hard runtime crashes on blank/missing API keys
+export const app = isFirebaseConfigured
+  ? (getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig))
+  : (getApps().length > 0 ? getApps()[0] : initializeApp({ apiKey: 'placeholder-key', projectId: 'demo-app' }, 'mock-app'));
+
+// Initialize Firestore
+export const db = isFirebaseConfigured ? getFirestore(app, firestoreDatabaseId) : null as any;
 
 // Initialize Auth
-export const auth = getAuth(app);
+export const auth = isFirebaseConfigured ? getAuth(app) : null as any;
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account',
@@ -88,6 +98,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
 // Validate connection to Firestore on initialization
 export async function testConnection(): Promise<void> {
+  if (!isFirebaseConfigured || !db) return;
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
@@ -97,5 +108,7 @@ export async function testConnection(): Promise<void> {
   }
 }
 
-// Run test connection asynchronously on module boot
-testConnection();
+// Run test connection asynchronously on module boot if configured
+if (isFirebaseConfigured) {
+  testConnection();
+}
