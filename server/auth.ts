@@ -199,8 +199,8 @@ export function validateSession(token: string): AuthUser | null {
   if (!user) {
     const now = new Date().toISOString();
     run(
-      `INSERT OR IGNORE INTO users (id, email, password_hash, display_name, currency, locale, date_format, onboarding_completed, created_at, updated_at)
-       VALUES (?, ?, 'firebase_managed', ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR IGNORE INTO users (id, email, password_hash, salt, display_name, currency, locale, date_format, onboarding_completed, created_at, updated_at)
+       VALUES (?, ?, 'firebase_managed', 'firebase_managed', ?, ?, ?, ?, ?, ?, ?)`,
       [
         payload.uid,
         payload.email || `${payload.uid}@pryora.app`,
