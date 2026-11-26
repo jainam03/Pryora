@@ -22,6 +22,9 @@ import {
 import { auth, googleProvider, isFirebaseConfigured } from '../lib/firebase';
 import {
   signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile as fbUpdateProfile,
   signOut as fbSignOut,
   onAuthStateChanged,
   User as FirebaseUser,
@@ -182,6 +185,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, password: string) => {
+    if (isFirebaseConfigured && auth) {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const idToken = await cred.user.getIdToken(true);
+      const res = await apiRequest<{ token: string; user: User }>('/api/auth/firebase-login', {
+        method: 'POST',
+        body: JSON.stringify({ idToken }),
+      });
+      applyAuthenticatedSession(res.token, res.user);
+      return;
+    }
+
     const res = await apiRequest<{ token: string; user: User }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -202,6 +216,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     displayName?: string,
     currency: string = 'INR'
   ) => {
+    if (isFirebaseConfigured && auth) {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      if (displayName?.trim()) {
+        await fbUpdateProfile(cred.user, { displayName: displayName.trim() });
+      }
+      const idToken = await cred.user.getIdToken(true);
+      const res = await apiRequest<{ token: string; user: User }>('/api/auth/firebase-login', {
+        method: 'POST',
+        body: JSON.stringify({ idToken }),
+      });
+      applyAuthenticatedSession(res.token, res.user);
+      return;
+    }
+
     const res = await apiRequest<{ token: string; user: User }>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, displayName, currency }),
