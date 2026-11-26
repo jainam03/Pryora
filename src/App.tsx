@@ -222,8 +222,14 @@ const MainApp: React.FC = () => {
     );
   }
 
+  const hasCompletedOnboarding = Boolean(
+    user &&
+      (user.onboarding_completed ||
+        safeGetItem(`pryora_onboarding_done_${user.email || user.id}`) === '1')
+  );
+
   // Show Onboarding if user hasn't completed setup yet
-  if (!user.onboarding_completed) {
+  if (!hasCompletedOnboarding) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <OnboardingModal

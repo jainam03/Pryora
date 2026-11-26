@@ -11,6 +11,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '../types';
+import { safeSetItem } from '../lib/storage';
 import {
   apiRequest,
   getStoredToken,
@@ -62,6 +63,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setStoredToken(nextToken);
     setToken(nextToken);
     setUser(nextUser);
+    if (nextUser.onboarding_completed) {
+      safeSetItem(`pryora_onboarding_done_${nextUser.email || nextUser.id}`, '1');
+    }
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -266,6 +270,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       method: 'POST',
       body: JSON.stringify(data),
     });
+    safeSetItem(`pryora_onboarding_done_${res.user.email || res.user.id}`, '1');
     setUser(res.user);
   };
 
