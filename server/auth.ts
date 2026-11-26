@@ -7,7 +7,7 @@
 
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
-import { queryOne, run } from './db/database.js';
+import { queryOne, run, seedDefaultCategories } from './db/database.js';
 
 export interface AuthUser {
   id: string;
@@ -71,12 +71,70 @@ export function verifyPassword(password: string, salt: string, hash: string): bo
   }
 }
 
+function getSessionSecret(): string {
+  return (
+    process.env.SESSION_SECRET ||
+    process.env.FIREBASE_PROJECT_ID ||
+    'pryora-ephemeral-session-secret'
+  );
+}
+
+function signStatelessToken(payload: Record<string, any>): string {
+  const encoded = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  const sig = crypto
+    .createHmac('sha256', getSessionSecret())
+    .update(encoded)
+    .digest('base64url');
+  return `pryora.${encoded}.${sig}`;
+}
+
+function verifyStatelessToken(token: string): Record<string, any> | null {
+  if (!token.startsWith('pryora.')) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  const [, encoded, sig] = parts;
+  const expectedSig = crypto
+    .createHmac('sha256', getSessionSecret())
+    .update(encoded)
+    .digest('base64url');
+  const sigBuf = Buffer.from(sig);
+  const expectedBuf = Buffer.from(expectedSig);
+  if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
+    if (!payload.uid || !payload.exp || Date.now() > payload.exp) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Creates a new secure session token for a user.
  */
 export function createSession(userId: string, durationDays: number = 30): string {
-  const token = crypto.randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+  const user = queryOne<AuthUser>(
+    `SELECT id, email, display_name, currency, locale, date_format, onboarding_completed, created_at 
+     FROM users WHERE id = ?`,
+    [userId]
+  );
+
+  const expMs = Date.now() + durationDays * 24 * 60 * 60 * 1000;
+  const token = signStatelessToken({
+    jti: crypto.randomBytes(16).toString('hex'),
+    uid: userId,
+    email: user?.email || '',
+    display_name: user?.display_name || 'User',
+    currency: user?.currency || 'INR',
+    locale: user?.locale || 'en-IN',
+    date_format: user?.date_format || 'DD/MM/YYYY',
+    onboarding_completed: user?.onboarding_completed || 0,
+    exp: expMs,
+  });
+
+  const expiresAt = new Date(expMs).toISOString();
   const createdAt = new Date().toISOString();
 
   // Opportunistically purge expired sessions for this user
@@ -103,7 +161,7 @@ export function deleteUserSessions(userId: string): void {
  * Validates a session token and returns the user if active.
  */
 export function validateSession(token: string): AuthUser | null {
-  if (!token || typeof token !== 'string' || token.length < 32 || token.length > 128) {
+  if (!token || typeof token !== 'string' || token.length < 32 || token.length > 2048) {
     return null;
   }
 
@@ -112,19 +170,56 @@ export function validateSession(token: string): AuthUser | null {
     [token]
   );
 
-  if (!session) return null;
+  if (session) {
+    if (new Date(session.expires_at) < new Date()) {
+      run(`DELETE FROM sessions WHERE token = ?`, [token]);
+      return null;
+    }
 
-  if (new Date(session.expires_at) < new Date()) {
-    // Session expired, remove it
-    run(`DELETE FROM sessions WHERE token = ?`, [token]);
-    return null;
+    const user = queryOne<AuthUser>(
+      `SELECT id, email, display_name, currency, locale, date_format, onboarding_completed, created_at 
+       FROM users WHERE id = ?`,
+      [session.user_id]
+    );
+    if (user) return user;
   }
 
-  const user = queryOne<AuthUser>(
+  // Stateless fallback for serverless environments (e.g. Vercel ephemeral /tmp)
+  if (!process.env.VERCEL) return null;
+
+  const payload = verifyStatelessToken(token);
+  if (!payload) return null;
+
+  let user = queryOne<AuthUser>(
     `SELECT id, email, display_name, currency, locale, date_format, onboarding_completed, created_at 
      FROM users WHERE id = ?`,
-    [session.user_id]
+    [payload.uid]
   );
+
+  if (!user) {
+    const now = new Date().toISOString();
+    run(
+      `INSERT OR IGNORE INTO users (id, email, password_hash, display_name, currency, locale, date_format, onboarding_completed, created_at, updated_at)
+       VALUES (?, ?, 'firebase_managed', ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        payload.uid,
+        payload.email || `${payload.uid}@pryora.app`,
+        payload.display_name || 'User',
+        payload.currency || 'INR',
+        payload.locale || 'en-IN',
+        payload.date_format || 'DD/MM/YYYY',
+        payload.onboarding_completed ? 1 : 0,
+        now,
+        now,
+      ]
+    );
+    seedDefaultCategories(payload.uid);
+    user = queryOne<AuthUser>(
+      `SELECT id, email, display_name, currency, locale, date_format, onboarding_completed, created_at 
+       FROM users WHERE id = ?`,
+      [payload.uid]
+    );
+  }
 
   return user;
 }
