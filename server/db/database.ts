@@ -49,7 +49,16 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
       }
     }
 
-    const SQL = await initSqlJs();
+    const SQL = await initSqlJs({
+      useOldExtensionFunctions: false,
+      locateFile: (file: string) => {
+        const wasmPath = path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file);
+        if (fs.existsSync(wasmPath)) {
+          return wasmPath;
+        }
+        return file;
+      },
+    });
 
     if (fs.existsSync(DB_FILE)) {
       try {
